@@ -70,12 +70,18 @@ async def list_wallets(
                         bal = await get_token_balance(t.contract_address, w.address, t.decimals)
                         token_balances[t.symbol] = bal
                     except Exception as e:  # noqa: BLE001
-                        logger.warning("token balance failed for %s/%s: %s", w.address, t.symbol, e)
+                        logger.warning(
+                            "token balance failed for %s/%s: %s: %r",
+                            w.address, t.symbol, type(e).__name__, e,
+                        )
                 item.token_balances = token_balances  # type: ignore[assignment]
             except Web3Unavailable as e:
                 raise HTTPException(status_code=400, detail=str(e))
             except Exception as e:  # noqa: BLE001
-                logger.warning("eth balance failed for %s: %s", w.address, e)
+                logger.warning(
+                    "eth balance failed for %s: %s: %r",
+                    w.address, type(e).__name__, e,
+                )
         out.append(item)
     return out
 
