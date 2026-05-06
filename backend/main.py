@@ -71,6 +71,15 @@ async def explorer():
     return {"message": "Explorer page not found"}
 
 
+@app.get("/admin/airdrop")
+async def admin_airdrop():
+    """Serve the airdrop admin page"""
+    admin_path = frontend_path / "admin.html"
+    if admin_path.exists():
+        return FileResponse(admin_path)
+    return {"message": "Admin page not found"}
+
+
 @app.get("/api/health")
 async def health_check():
     """Health check endpoint"""
