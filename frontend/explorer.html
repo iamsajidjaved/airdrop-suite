@@ -3,166 +3,268 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Explorer Dashboard - Wallet Explorer</title>
-    <link rel="stylesheet" href="/static/css/styles.css?v=6">
+    <title>Explorer Dashboard — Wallet Explorer</title>
+    <link rel="stylesheet" href="/static/css/styles.css?v=7">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="animated-bg"></div>
-    
-    <div class="container">
-        <header class="explorer-header">
-            <button id="headerBackBtn" class="header-back-btn" title="Back to Search">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M19 12H5M12 19l-7-7 7-7"/>
+
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="app-sidebar">
+        <a href="/" class="sidebar-logo">
+            <div class="sidebar-logo-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
                 </svg>
-                <span>Back</span>
-            </button>
-            <div class="header-content">
-                <h1 class="logo">🔗 Wallet Explorer</h1>
-                <p class="subtitle">Transaction Dashboard</p>
             </div>
-        </header>
+            <span class="sidebar-logo-text">Wallet Explorer</span>
+        </a>
 
-        <!-- Wallet Summary Section -->
-        <section id="summarySection" style="display: none;">
-            <div class="summary-grid">
-                <div class="summary-card">
-                    <div class="summary-label">Wallet Address</div>
-                    <div class="summary-value wallet-address-display" id="walletAddressDisplay"></div>
-                </div>
-                <div class="summary-card">
-                    <div class="summary-label">Networks</div>
-                    <div class="summary-value" id="networksDisplay"></div>
-                </div>
-                <div class="summary-card">
-                    <div class="summary-label">Total Transactions</div>
-                    <div class="summary-value" id="totalTxDisplay">0</div>
-                </div>
-                <div class="summary-card">
-                    <div class="summary-label">First Seen</div>
-                    <div class="summary-value" style="font-size: 1.2rem;" id="firstSeenDisplay">-</div>
-                </div>
-                <div class="summary-card">
-                    <div class="summary-label">Last Activity</div>
-                    <div class="summary-value" style="font-size: 1.2rem;" id="lastActivityDisplay">-</div>
-                </div>
+        <nav class="sidebar-nav">
+            <div class="sidebar-section-label">Navigation</div>
+            <!-- headerBackBtn ID is required — explorer.js attaches a click handler to it -->
+            <a href="/" class="sidebar-nav-item" id="headerBackBtn">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"/>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                New Search
+            </a>
+
+            <div class="sidebar-section-label" style="margin-top: 8px;">Current Wallet</div>
+            <div class="sidebar-wallet-info">
+                <div class="sidebar-wallet-label">Viewing Address</div>
+                <div class="sidebar-wallet-address" id="sidebarWalletAddr">—</div>
             </div>
-        </section>
+        </nav>
+    </aside>
 
-        <!-- Filters Section -->
-        <section id="filtersSection" class="filters-section" style="display: none;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                <h3 style="margin: 0; font-size: 1.25rem;">🔍 Filters</h3>
-                <button id="resetFiltersBtn" class="btn btn-secondary" style="padding: 0.5rem 1.25rem;">
-                    🔄 Reset
-                </button>
+    <!-- ===== TOP HEADER ===== -->
+    <header class="app-header">
+        <div class="header-title-group">
+            <div class="header-page-title">Transaction Explorer</div>
+            <div class="header-breadcrumb">
+                <span>Dashboard</span>
+                <span>›</span>
+                <span>Wallet Analysis</span>
             </div>
-            <div id="dateRangeBanner" style="display:none; margin-bottom: 1rem; padding: 0.6rem 1rem; background: rgba(102,126,234,0.12); border-radius: 8px; border-left: 3px solid var(--accent-blue); font-size: 0.9rem; color: var(--text-secondary);"></div>
-            <div class="filters-grid">
-                <div class="filter-group">
-                    <label for="directionFilter">Direction</label>
-                    <select id="directionFilter">
-                        <option value="">All</option>
-                        <option value="incoming">Incoming</option>
-                        <option value="outgoing">Outgoing</option>
-                    </select>
-                </div>
+        </div>
+        <div></div>
+    </header>
 
-                <div class="filter-group">
-                    <label for="counterpartyFilter">Counterparty</label>
-                    <div class="custom-select-wrapper">
-                        <div class="custom-select-trigger" id="counterpartyTrigger">
-                            <span id="counterpartySelected">All Addresses</span>
-                            <span class="arrow">▼</span>
+    <!-- ===== MAIN CONTENT ===== -->
+    <main class="app-main">
+        <div class="main-content">
+
+            <!-- Loading State -->
+            <div id="loadingState" class="loading">
+                <div class="loading-spinner"></div>
+                <p>Loading transactions...</p>
+            </div>
+
+            <!-- Error State -->
+            <div id="errorState" style="display: none;">
+                <div class="error-message" id="errorMessage"></div>
+                <button id="retryBtn" class="btn btn-secondary">Retry</button>
+            </div>
+
+            <!-- ===== KPI SUMMARY CARDS ===== -->
+            <section id="summarySection" style="display: none;">
+                <div class="summary-grid">
+
+                    <!-- Wallet Address -->
+                    <div class="kpi-card">
+                        <div class="kpi-card-icon kpi-icon-blue">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                                <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+                            </svg>
                         </div>
-                        <div class="custom-select-dropdown" id="counterpartyDropdown">
-                            <div class="dropdown-search">
-                                <input type="text" id="counterpartySearch" placeholder="Search addresses...">
-                            </div>
-                            <div class="dropdown-options" id="counterpartyOptions">
-                                <!-- Options will be populated by JavaScript -->
-                            </div>
+                        <div class="kpi-card-body">
+                            <div class="kpi-label">Wallet Address</div>
+                            <div class="kpi-value kpi-value-mono wallet-address-display" id="walletAddressDisplay"></div>
                         </div>
                     </div>
-                    <input type="hidden" id="counterpartyFilter" value="">
-                </div>
-            </div>
-        </section>
 
-        <!-- Loading State -->
-        <div id="loadingState" class="loading">
-            <div class="loading-spinner"></div>
-            <p>Loading transactions...</p>
-        </div>
-
-        <!-- Error State -->
-        <div id="errorState" style="display: none;">
-            <div class="error-message" id="errorMessage"></div>
-            <button id="retryBtn" class="btn btn-secondary">Retry</button>
-        </div>
-
-        <!-- Transactions Table -->
-        <section id="transactionsSection" style="display: none;">
-            <div class="table-container">
-                <div class="table-header">
-                    <h3 class="table-title">📊 Transactions (<span id="filteredCount">0</span>)</h3>
-                    <div class="table-actions">
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <label for="perPageSelect" style="font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap;">Rows per page:</label>
-                            <select id="perPageSelect" style="background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 0.35rem 0.6rem; font-size: 0.85rem; cursor: pointer;">
-                                <option value="10">10</option>
-                                <option value="50" selected>50</option>
-                                <option value="100">100</option>
-                                <option value="500">500</option>
-                                <option value="1000">1000</option>
-                            </select>
+                    <!-- Networks -->
+                    <div class="kpi-card">
+                        <div class="kpi-card-icon kpi-icon-green">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="2" y1="12" x2="22" y2="12"/>
+                                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                            </svg>
                         </div>
-                        <button id="exportCsvBtn" class="btn btn-secondary" style="padding: 0.5rem 1.5rem;">
-                            📥 Export to Excel
-                        </button>
+                        <div class="kpi-card-body">
+                            <div class="kpi-label">Networks</div>
+                            <div class="kpi-value" id="networksDisplay"></div>
+                        </div>
+                    </div>
+
+                    <!-- Total Transactions -->
+                    <div class="kpi-card">
+                        <div class="kpi-card-icon kpi-icon-warning">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                            </svg>
+                        </div>
+                        <div class="kpi-card-body">
+                            <div class="kpi-label">Total Transactions</div>
+                            <div class="kpi-value" id="totalTxDisplay">0</div>
+                        </div>
+                    </div>
+
+                    <!-- First Seen -->
+                    <div class="kpi-card">
+                        <div class="kpi-card-icon kpi-icon-blue">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                        </div>
+                        <div class="kpi-card-body">
+                            <div class="kpi-label">First Seen</div>
+                            <div class="kpi-value" style="font-size: 15px;" id="firstSeenDisplay">—</div>
+                        </div>
+                    </div>
+
+                    <!-- Last Activity -->
+                    <div class="kpi-card">
+                        <div class="kpi-card-icon kpi-icon-green">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"/>
+                                <polyline points="12 6 12 12 16 14"/>
+                            </svg>
+                        </div>
+                        <div class="kpi-card-body">
+                            <div class="kpi-label">Last Activity</div>
+                            <div class="kpi-value" style="font-size: 15px;" id="lastActivityDisplay">—</div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- ===== FILTERS SECTION ===== -->
+            <section id="filtersSection" class="filters-section" style="display: none;">
+                <div class="filters-header">
+                    <span class="filters-title">Filters</span>
+                    <button id="resetFiltersBtn" class="btn btn-secondary" style="padding: 6px 14px; font-size: 12px;">
+                        Reset Filters
+                    </button>
+                </div>
+
+                <div id="dateRangeBanner" style="display: none;"></div>
+
+                <div class="filters-grid">
+                    <div class="filter-group">
+                        <label for="directionFilter">Direction</label>
+                        <select id="directionFilter">
+                            <option value="">All</option>
+                            <option value="incoming">Incoming</option>
+                            <option value="outgoing">Outgoing</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="counterpartyFilter">Counterparty</label>
+                        <div class="custom-select-wrapper">
+                            <div class="custom-select-trigger" id="counterpartyTrigger">
+                                <span id="counterpartySelected">All Addresses</span>
+                                <span class="arrow">▼</span>
+                            </div>
+                            <div class="custom-select-dropdown" id="counterpartyDropdown">
+                                <div class="dropdown-search">
+                                    <input type="text" id="counterpartySearch" placeholder="Search addresses...">
+                                </div>
+                                <div class="dropdown-options" id="counterpartyOptions"></div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="counterpartyFilter" value="">
                     </div>
                 </div>
+            </section>
 
-                <div class="table-wrapper">
-                    <table id="transactionsTable">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th data-sort="datetime">Date & Time</th>
-                                <th data-sort="from">From</th>
-                                <th data-sort="to">To</th>
-                                <th data-sort="amount">Amount</th>
-                                <th data-sort="token_symbol">Token</th>
-                                <th data-sort="direction">Direction</th>
-                                <th class="explorer-column">Explorer</th>
-                            </tr>
-                        </thead>
-                        <tbody id="transactionsTBody">
-                        </tbody>
-                    </table>
-                </div>
+            <!-- ===== TRANSACTIONS TABLE ===== -->
+            <section id="transactionsSection" style="display: none;">
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3 class="table-title">
+                            Transactions
+                            <span style="color: var(--text-secondary); font-weight: 400; font-size: 13px;">
+                                (<span id="filteredCount">0</span> records)
+                            </span>
+                        </h3>
+                        <div class="table-actions">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <label for="perPageSelect" style="font-size: 12px; color: var(--text-secondary); white-space: nowrap;">Rows:</label>
+                                <select id="perPageSelect" style="font-size: 12px; padding: 5px 8px;">
+                                    <option value="10">10</option>
+                                    <option value="50" selected>50</option>
+                                    <option value="100">100</option>
+                                    <option value="500">500</option>
+                                    <option value="1000">1000</option>
+                                </select>
+                            </div>
+                            <button id="exportCsvBtn" class="btn btn-secondary" style="font-size: 12px; padding: 7px 14px;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                    <polyline points="7 10 12 15 17 10"/>
+                                    <line x1="12" y1="15" x2="12" y2="3"/>
+                                </svg>
+                                Export to Excel
+                            </button>
+                        </div>
+                    </div>
 
-                <div class="pagination">
-                    <button id="prevPageBtn" disabled>← Previous</button>
-                    <span class="page-info">
-                        Page <span id="currentPage">1</span> of <span id="totalPages">1</span>
-                    </span>
-                    <button id="nextPageBtn" disabled>Next →</button>
+                    <div class="table-wrapper">
+                        <table id="transactionsTable">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th data-sort="datetime">Date &amp; Time</th>
+                                    <th data-sort="from">From</th>
+                                    <th data-sort="to">To</th>
+                                    <th data-sort="amount">Amount</th>
+                                    <th data-sort="token_symbol">Token</th>
+                                    <th data-sort="direction">Direction</th>
+                                    <th class="explorer-column">Explorer</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transactionsTBody"></tbody>
+                        </table>
+                    </div>
+
+                    <div class="pagination">
+                        <button id="prevPageBtn" disabled>&#8592; Previous</button>
+                        <span class="page-info">
+                            Page <span id="currentPage">1</span> of <span id="totalPages">1</span>
+                        </span>
+                        <button id="nextPageBtn" disabled>Next &#8594;</button>
+                    </div>
                 </div>
+            </section>
+
+            <!-- ===== EMPTY STATE ===== -->
+            <div id="emptyState" class="empty-state" style="display: none;">
+                <div class="empty-state-icon">
+                    <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                </div>
+                <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 6px;">No Transactions Found</h3>
+                <p style="color: var(--text-secondary); font-size: 13px;">Try adjusting your filters or search for a different wallet address.</p>
             </div>
-        </section>
 
-        <!-- Empty State -->
-        <div id="emptyState" class="empty-state" style="display: none;">
-            <div class="empty-state-icon">📭</div>
-            <h3>No Transactions Found</h3>
-            <p style="margin-top: 1rem;">Try adjusting your filters or search for a different wallet address.</p>
         </div>
-    </div>
+    </main>
 
-    <script src="/static/js/explorer.js?v=6"></script>
+    <script src="/static/js/explorer.js?v=7"></script>
 </body>
 </html>

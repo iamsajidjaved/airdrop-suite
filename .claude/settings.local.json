@@ -2,7 +2,17 @@
   "permissions": {
     "allow": [
       "PowerShell(Invoke-WebRequest -Uri \"http://127.0.0.1:8000/api/health\" -UseBasicParsing | Select-Object StatusCode, Content)",
-      "PowerShell(Start-Sleep -Seconds 3; Invoke-WebRequest -Uri \"http://127.0.0.1:8000/api/health\" -UseBasicParsing | Select-Object StatusCode, Content)"
+      "PowerShell(Start-Sleep -Seconds 3; Invoke-WebRequest -Uri \"http://127.0.0.1:8000/api/health\" -UseBasicParsing | Select-Object StatusCode, Content)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Sajid\\\\Documents\\\\wallet-explorer\" -Recurse -Force)",
+      "Bash(Select-Object FullName)",
+      "Bash(ConvertTo-Csv -NoTypeInformation)",
+      "Bash(Out-String)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Sajid\\\\Documents\\\\wallet-explorer\" -Recurse -Directory)",
+      "Bash(uv run *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:8000/)",
+      "Bash(curl -s http://127.0.0.1:8000/)",
+      "Bash(curl -s http://127.0.0.1:8000/explorer)",
+      "Bash(curl -s http://127.0.0.1:8000/static/css/styles.css?v=7)"
     ]
   }
 }

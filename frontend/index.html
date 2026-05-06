@@ -3,96 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wallet Explorer - Multi-Network Transaction Tracker</title>
-    <link rel="stylesheet" href="/static/css/styles.css?v=6">
+    <title>Wallet Explorer — Multi-Network Transaction Tracker</title>
+    <link rel="stylesheet" href="/static/css/styles.css?v=7">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="animated-bg"></div>
-    
-    <div class="container">
-        <header>
-            <h1 class="logo">🔗 Wallet Explorer</h1>
-            <p class="subtitle">Track ERC-20 & TRC-20 Transactions Across Multiple Networks</p>
-        </header>
 
-        <div class="wallet-input-container">
-            <div class="wallet-input-card card">
-                <h2 style="margin-bottom: 2rem; font-size: 1.75rem;">Enter Wallet Address</h2>
-                
-                <form id="walletForm">
-                    <div class="input-group">
-                        <label for="walletAddress">Wallet Address</label>
-                        <div class="input-wrapper">
-                            <input 
-                                type="text" 
-                                id="walletAddress" 
-                                class="wallet-input" 
-                                placeholder="Enter Wallet Address (0x... or T...)"
-                                autocomplete="off"
-                                spellcheck="false"
-                            >
-                        </div>
-                        <div id="validationMessage" class="validation-message" style="display: none;"></div>
-                    </div>
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="app-sidebar">
+        <a href="/" class="sidebar-logo">
+            <div class="sidebar-logo-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                </svg>
+            </div>
+            <span class="sidebar-logo-text">Wallet Explorer</span>
+        </a>
 
-                    <div class="date-range-group">
-                        <div class="input-group date-input-group">
-                            <label for="fromDate">From Date <span style="color: var(--text-secondary); font-weight: 400;">(optional)</span></label>
-                            <input
-                                type="date"
-                                id="fromDate"
-                                class="wallet-input"
-                            >
-                        </div>
-                        <div class="input-group date-input-group">
-                            <label for="toDate">To Date <span style="color: var(--text-secondary); font-weight: 400;">(optional)</span></label>
-                            <input
-                                type="date"
-                                id="toDate"
-                                class="wallet-input"
-                            >
-                        </div>
-                    </div>
-                    <div id="dateRangeMessage" class="validation-message" style="display: none;"></div>
+        <nav class="sidebar-nav">
+            <div class="sidebar-section-label">Main</div>
+            <a href="/" class="sidebar-nav-item active">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="7" height="7"/>
+                    <rect x="14" y="3" width="7" height="7"/>
+                    <rect x="14" y="14" width="7" height="7"/>
+                    <rect x="3" y="14" width="7" height="7"/>
+                </svg>
+                Dashboard
+            </a>
+        </nav>
+    </aside>
 
-                    <div style="margin-bottom: 1.5rem; padding: 1rem; background: rgba(102, 126, 234, 0.1); border-radius: 8px; border-left: 4px solid var(--accent-blue);">
-                        <div style="font-size: 0.9rem; color: var(--text-secondary);">
-                            <strong style="color: var(--text-primary);">Supported Networks:</strong><br>
-                            <span style="display: inline-flex; align-items: center; margin-top: 0.5rem;">
-                                <span class="badge badge-erc" style="margin-right: 0.5rem;">ERC</span> Ethereum - Address starts with <code style="background: var(--bg-secondary); padding: 0.25rem 0.5rem; border-radius: 4px;">0x</code>
+    <!-- ===== TOP HEADER ===== -->
+    <header class="app-header">
+        <div class="header-title-group">
+            <div class="header-page-title">Wallet Explorer</div>
+            <div class="header-breadcrumb">
+                <span>Home</span>
+                <span>›</span>
+                <span>New Search</span>
+            </div>
+        </div>
+        <div></div>
+    </header>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <main class="app-main">
+        <div class="main-content">
+
+            <div class="search-card-wrapper">
+                <div class="card">
+                    <h2 style="font-size: 16px; font-weight: 700; margin-bottom: 4px;">New Wallet Search</h2>
+                    <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 24px;">Enter a wallet address to explore ERC-20 and TRC-20 transaction history.</p>
+
+                    <form id="walletForm">
+                        <div class="input-group">
+                            <label for="walletAddress">Wallet Address</label>
+                            <div class="input-wrapper">
+                                <input
+                                    type="text"
+                                    id="walletAddress"
+                                    class="wallet-input"
+                                    placeholder="Enter address (0x... or T...)"
+                                    autocomplete="off"
+                                    spellcheck="false"
+                                >
+                            </div>
+                            <div id="validationMessage" class="validation-message" style="display: none;"></div>
+                        </div>
+
+                        <div class="date-range-group">
+                            <div class="input-group date-input-group">
+                                <label for="fromDate">From Date <span style="color: var(--text-muted); font-weight: 400; text-transform: none;">(optional)</span></label>
+                                <input type="date" id="fromDate" class="wallet-input">
+                            </div>
+                            <div class="input-group date-input-group">
+                                <label for="toDate">To Date <span style="color: var(--text-muted); font-weight: 400; text-transform: none;">(optional)</span></label>
+                                <input type="date" id="toDate" class="wallet-input">
+                            </div>
+                        </div>
+                        <div id="dateRangeMessage" class="validation-message" style="display: none;"></div>
+
+                        <div class="networks-info-panel">
+                            <strong style="color: var(--text-primary); display: block; margin-bottom: 8px; font-size: 12px;">Supported Networks</strong>
+                            <span style="display: inline-flex; align-items: center; gap: 8px;">
+                                <span class="badge badge-erc">ERC</span>
+                                Ethereum — address starts with <code style="background: var(--bg-hover); padding: 1px 6px; border-radius: 4px; font-size: 11px; font-family: Monaco, monospace;">0x</code>
                             </span>
                             <br>
-                            <span style="display: inline-flex; align-items: center; margin-top: 0.5rem;">
-                                <span class="badge badge-trc" style="margin-right: 0.5rem;">TRC</span> Tron - Address starts with <code style="background: var(--bg-secondary); padding: 0.25rem 0.5rem; border-radius: 4px;">T</code>
+                            <span style="display: inline-flex; align-items: center; gap: 8px; margin-top: 6px;">
+                                <span class="badge badge-trc">TRC</span>
+                                Tron — address starts with <code style="background: var(--bg-hover); padding: 1px 6px; border-radius: 4px; font-size: 11px; font-family: Monaco, monospace;">T</code>
                             </span>
                         </div>
-                    </div>
 
-                    <button type="submit" id="submitBtn" class="btn btn-primary" disabled>
-                        Get Transactions
-                    </button>
-                </form>
+                        <button type="submit" id="submitBtn" class="btn btn-primary" disabled>
+                            Get Transactions
+                        </button>
+                    </form>
 
-                <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--border-color);">
-                    <p style="color: var(--text-secondary); font-size: 0.9rem; text-align: center;">
-                        <strong>Try these examples:</strong>
-                    </p>
-                    <div style="display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap; justify-content: center;">
-                        <button type="button" class="btn btn-secondary example-btn" style="padding: 0.5rem 1rem; font-size: 0.85rem;" data-address="0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae">
-                            ETH Example
-                        </button>
-                        <button type="button" class="btn btn-secondary example-btn" style="padding: 0.5rem 1rem; font-size: 0.85rem;" data-address="TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t">
-                            TRX Example
-                        </button>
+                    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+                        <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 10px;">Try an example address:</p>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button type="button" class="btn btn-secondary example-btn" style="font-size: 12px; padding: 6px 14px;" data-address="0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae">
+                                ETH Example
+                            </button>
+                            <button type="button" class="btn btn-secondary example-btn" style="font-size: 12px; padding: 6px 14px;" data-address="TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t">
+                                TRX Example
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <script src="/static/js/wallet.js?v=6"></script>
+        </div>
+    </main>
+
+    <script src="/static/js/wallet.js?v=7"></script>
 </body>
 </html>

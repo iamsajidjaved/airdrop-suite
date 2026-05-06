@@ -118,8 +118,14 @@ async function fetchTransactions() {
 // Update summary section — static parts (wallet address, networks) set once
 function updateSummary(data) {
     walletAddressDisplay.textContent = data.wallet_address;
-    
-    const networkBadges = data.networks.map(net => 
+
+    const sidebarWalletAddr = document.getElementById('sidebarWalletAddr');
+    if (sidebarWalletAddr) {
+        sidebarWalletAddr.textContent = truncateAddress(data.wallet_address);
+        sidebarWalletAddr.title = data.wallet_address;
+    }
+
+    const networkBadges = data.networks.map(net =>
         `<span class="badge badge-${net.toLowerCase()}">${net}</span>`
     ).join(' ');
     networksDisplay.innerHTML = networkBadges;
