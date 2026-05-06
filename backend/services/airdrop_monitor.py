@@ -202,13 +202,19 @@ class AirdropMonitorService:
 
                 rows = self._filter_and_extract(txs, spec, threshold)
                 if rows:
-                    stmt = (
-                        pg_insert(AirdropTransaction.__table__)
-                        .values(rows)
-                        .on_conflict_do_nothing(constraint="uq_airdrop_tx_hash_log_token")
-                    )
-                    res = await session.execute(stmt)
-                    new_count += res.rowcount or 0
+                    # PostgreSQL has a hard limit of 32767 bind parameters per
+                    # statement. Each row has 10 columns, so cap each batch at
+                    # 3000 rows (= 30000 params) to stay safely under the limit.
+                    BATCH_SIZE = 3000
+                    for i in range(0, len(rows), BATCH_SIZE):
+                        chunk = rows[i : i + BATCH_SIZE]
+                        stmt = (
+                            pg_insert(AirdropTransaction.__table__)
+                            .values(chunk)
+                            .on_conflict_do_nothing(constraint="uq_airdrop_tx_hash_log_token")
+                        )
+                        res = await session.execute(stmt)
+                        new_count += res.rowcount or 0
 
                 if start_block_override is None and max_block > spec.start_block:
                     await session.execute(
