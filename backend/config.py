@@ -24,6 +24,16 @@ class Settings(BaseSettings):
     # Token list and threshold live in the database (airdrop_tokens / airdrop_config tables).
     airdrop_page_size: int = 1000
 
+    # Background scheduler: when enabled, the app spawns an asyncio task that
+    # runs the monitor every `airdrop_scheduler_interval_seconds`. Because each
+    # run resumes from `last_scanned_block`, no transactions are missed even if
+    # the interval is large or the process restarts.
+    airdrop_scheduler_enabled: bool = True
+    airdrop_scheduler_interval_seconds: int = 60
+    # Wait this many seconds after app startup before the first run, so the API
+    # is responsive immediately and the first scan doesn't block boot.
+    airdrop_scheduler_initial_delay_seconds: int = 5
+
     # Bootstrap defaults used by the initial Alembic seed migration only.
     airdrop_seed_tokens: str = (
         "USDT:0xdac17f958d2ee523a2206206994597c13d831ec7:6,"

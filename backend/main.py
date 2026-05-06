@@ -1,5 +1,6 @@
 """FastAPI application entry point"""
 import logging
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
@@ -8,6 +9,7 @@ from fastapi.responses import FileResponse
 from pathlib import Path
 from backend.routers import transactions, airdrop
 from backend.config import settings
+from backend.services.airdrop_scheduler import scheduler as airdrop_scheduler
 
 # Configure logging
 logging.basicConfig(
@@ -17,11 +19,23 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: launch the airdrop monitor background loop (if enabled).
+    airdrop_scheduler.start()
+    try:
+        yield
+    finally:
+        # Shutdown: cleanly cancel and await the loop.
+        await airdrop_scheduler.stop()
+
+
 # Create FastAPI app
 app = FastAPI(
     title="Wallet Explorer API",
     description="Multi-Network Wallet Transaction Explorer (ERC + TRC)",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan,
 )
 
 # Configure CORS

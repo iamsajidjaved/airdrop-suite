@@ -24,6 +24,7 @@ from backend.models import (
     MonitorRunResult,
 )
 from backend.services.airdrop_monitor import AirdropMonitorService
+from backend.services.airdrop_scheduler import scheduler as airdrop_scheduler
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +51,47 @@ async def run_monitor(
 @router.get("/status", response_model=AirdropStatusResponse)
 async def get_status():
     return await monitor_service.get_status()
+
+
+# ---------------- Scheduler ----------------
+
+@router.get("/scheduler")
+async def get_scheduler_state():
+    """Return current background scheduler state (running, last run, errors, ETA)."""
+    s = airdrop_scheduler.state
+    return {
+        "enabled": s.enabled,
+        "running": s.running,
+        "interval_seconds": s.interval_seconds,
+        "started_at": s.started_at,
+        "last_run_started_at": s.last_run_started_at,
+        "last_run_finished_at": s.last_run_finished_at,
+        "last_run_duration_seconds": s.last_run_duration_seconds,
+        "last_run_inserted": s.last_run_inserted,
+        "last_run_errors": s.last_run_errors,
+        "last_error": s.last_error,
+        "next_run_eta": s.next_run_eta,
+        "total_runs": s.total_runs,
+        "total_inserted": s.total_inserted,
+    }
+
+
+@router.post("/scheduler/start")
+async def start_scheduler():
+    airdrop_scheduler.start()
+    return {"ok": True, "running": airdrop_scheduler.state.running}
+
+
+@router.post("/scheduler/stop")
+async def stop_scheduler():
+    await airdrop_scheduler.stop()
+    return {"ok": True, "running": airdrop_scheduler.state.running}
+
+
+@router.post("/scheduler/trigger", response_model=MonitorRunResult)
+async def trigger_scheduler_now():
+    """Run a single monitor pass immediately, off the scheduler cadence."""
+    return await monitor_service.run_monitor()
 
 
 # ---------------- Transactions ----------------
