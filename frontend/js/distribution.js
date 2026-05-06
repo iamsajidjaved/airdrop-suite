@@ -108,8 +108,7 @@ async function refreshWallets() {
     const tbody = $('walletsTbody');
     tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 24px;">Loading…</td></tr>`;
     try {
-        const includeBal = $('walletsBalances').checked ? '?include_balances=true' : '';
-        const wallets = await api('GET', `/wallets${includeBal}`);
+        const wallets = await api('GET', `/wallets?include_balances=true`);
         WALLETS_CACHE = wallets;
         const kpiW = $('kpiWallets'); if (kpiW) kpiW.textContent = wallets.filter(w => w.is_active).length;
         if (!wallets.length) {
@@ -449,7 +448,6 @@ document.addEventListener('DOMContentLoaded', () => {
     $('walletCancelBtn').addEventListener('click', closeWalletModal);
     $('walletForm').addEventListener('submit', submitWallet);
     $('walletsTbody').addEventListener('click', handleWalletAction);
-    $('walletsBalances').addEventListener('change', refreshWallets);
 
     $('addCampaignBtn').addEventListener('click', openCampaignModal);
     $('campCancelBtn').addEventListener('click', closeCampaignModal);
