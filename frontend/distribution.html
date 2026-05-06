@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Distribution — Wallet Explorer</title>
-    <link rel="stylesheet" href="/static/css/styles.css?v=8">
-    <link rel="stylesheet" href="/static/css/admin.css?v=2">
+    <link rel="stylesheet" href="/static/css/styles.css?v=9">
+    <link rel="stylesheet" href="/static/css/admin.css?v=3">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -63,6 +63,46 @@
     <!-- ===== MAIN ===== -->
     <main class="app-main">
         <div class="main-content admin-grid">
+
+            <!-- KPI STRIP -->
+            <div class="kpi-strip admin-card-wide">
+                <div class="kpi-tile kpi-blue">
+                    <div class="kpi-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M2 10h20"/></svg>
+                    </div>
+                    <div class="kpi-body">
+                        <div class="kpi-label">Sender Wallets</div>
+                        <div class="kpi-value" id="kpiWallets">—</div>
+                    </div>
+                </div>
+                <div class="kpi-tile kpi-green">
+                    <div class="kpi-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l18-9-9 18-2-7-7-2z"/></svg>
+                    </div>
+                    <div class="kpi-body">
+                        <div class="kpi-label">Active Campaigns</div>
+                        <div class="kpi-value" id="kpiActiveCampaigns">—</div>
+                    </div>
+                </div>
+                <div class="kpi-tile kpi-violet">
+                    <div class="kpi-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    </div>
+                    <div class="kpi-body">
+                        <div class="kpi-label">Confirmed Transfers</div>
+                        <div class="kpi-value" id="kpiConfirmed">—</div>
+                    </div>
+                </div>
+                <div class="kpi-tile kpi-amber">
+                    <div class="kpi-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                    </div>
+                    <div class="kpi-body">
+                        <div class="kpi-label">In Flight</div>
+                        <div class="kpi-value" id="kpiInFlight">—</div>
+                    </div>
+                </div>
+            </div>
 
             <!-- CONFIG / WORKER -->
             <div class="card admin-card">
@@ -219,12 +259,37 @@
                     <select id="campToken" class="wallet-input" required></select>
                 </div>
                 <div class="input-group">
-                    <label for="campAmount">Amount per recipient</label>
-                    <input type="number" id="campAmount" class="wallet-input" required min="0" step="0.000001" placeholder="1.0">
+                    <label for="campAmount">Amount per recipient
+                        <span style="color:var(--text-muted); font-weight:400; font-size:11px;">(decimal, in token units)</span>
+                    </label>
+                    <div style="display:flex; gap:8px; align-items:stretch;">
+                        <input type="number" id="campAmount" class="wallet-input" required min="0" step="any" placeholder="1.0" style="flex:1;">
+                        <button type="button" id="campAmountMinBtn" class="btn btn-secondary" title="Set to the minimum representable unit for the selected token (1 / 10^decimals)" style="font-size:11px; padding:0 12px; white-space:nowrap;">Min unit</button>
+                    </div>
+                    <div id="campAmountHint" style="font-size:11px; color:var(--text-muted); margin-top:6px;">&nbsp;</div>
                 </div>
                 <div class="input-group">
                     <label for="campMaxTotal">Max total amount (optional cap)</label>
-                    <input type="number" id="campMaxTotal" class="wallet-input" min="0" step="0.000001" placeholder="leave empty for no cap">
+                    <input type="number" id="campMaxTotal" class="wallet-input" min="0" step="any" placeholder="leave empty for no cap">
+                </div>
+
+                <h4 style="margin-top:16px; font-size:12px; text-transform:uppercase; color:var(--text-muted); letter-spacing:0.5px;">Sender wallets</h4>
+                <div class="input-group">
+                    <label>Sender mode</label>
+                    <div style="display:flex; gap:14px; align-items:center; flex-wrap:wrap;">
+                        <label style="display:flex; align-items:center; gap:6px; font-weight:400; font-size:13px;">
+                            <input type="radio" name="campSenderMode" value="multi" checked> Multiple (parallel)
+                        </label>
+                        <label style="display:flex; align-items:center; gap:6px; font-weight:400; font-size:13px;">
+                            <input type="radio" name="campSenderMode" value="single"> Single
+                        </label>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label for="campWallets">Assigned wallets <span style="color:var(--text-muted); font-weight:400; font-size:11px;">(none selected = use all active)</span></label>
+                    <div id="campWallets" class="wallet-pick-list">
+                        <div style="color:var(--text-muted); font-size:12px;">Loading wallets…</div>
+                    </div>
                 </div>
 
                 <h4 style="margin-top:16px; font-size:12px; text-transform:uppercase; color:var(--text-muted); letter-spacing:0.5px;">Recipient filter (from Phase 1 data)</h4>
@@ -253,6 +318,6 @@
         </div>
     </div>
 
-    <script src="/static/js/distribution.js?v=1"></script>
+    <script src="/static/js/distribution.js?v=2"></script>
 </body>
 </html>

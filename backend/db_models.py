@@ -130,6 +130,11 @@ class DistributionCampaign(Base):
     network: Mapped[str] = mapped_column(String(32), nullable=False, default="ethereum", server_default="ethereum")
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="draft", server_default="draft")
     dry_run: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
+    # "multi" → fan-out across every assigned/active wallet; "single" → use only one
+    # wallet (the first assigned/active by id) for the whole campaign.
+    sender_mode: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="multi", server_default="multi"
+    )
     recipient_filter: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default="{}")
     max_total_amount: Mapped[Optional[Decimal]] = mapped_column(Numeric(38, 18), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
@@ -144,6 +149,33 @@ class DistributionCampaign(Base):
     )
 
     __table_args__ = (Index("ix_dist_campaign_status", "status"),)
+
+
+class DistributionCampaignWallet(Base):
+    """Join table assigning specific sender wallets to a campaign.
+
+    Empty assignment = fall back to all active wallets (legacy behavior).
+    """
+
+    __tablename__ = "distribution_campaign_wallets"
+
+    campaign_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("distribution_campaigns.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    wallet_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("distribution_wallets.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    __table_args__ = (
+        Index("ix_dist_campaign_wallets_wallet", "wallet_id"),
+    )
 
 
 class DistributionRecipient(Base):

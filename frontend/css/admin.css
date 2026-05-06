@@ -327,3 +327,127 @@
 }
 .banner.warn { background: rgba(251,191,36,0.10); border: 1px solid rgba(251,191,36,0.35); color: #fbbf24; }
 .banner.ok   { background: rgba(52,211,153,0.10); border: 1px solid rgba(52,211,153,0.35); color: #34d399; }
+
+/* ============================================================
+   KPI tiles (Metronic-inspired summary strip)
+   ============================================================ */
+.kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 4px;
+}
+
+.kpi-tile {
+    position: relative;
+    overflow: hidden;
+    border-radius: 12px;
+    padding: 18px 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: 0 4px 18px -10px rgba(0,0,0,0.6);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.kpi-tile:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px -14px rgba(0,0,0,0.8);
+}
+.kpi-tile::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.10;
+    background: linear-gradient(135deg, var(--kpi-from) 0%, transparent 70%);
+}
+.kpi-tile::after {
+    content: "";
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: linear-gradient(to bottom, var(--kpi-from), var(--kpi-to));
+}
+
+.kpi-icon {
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: #fff;
+    background: linear-gradient(135deg, var(--kpi-from), var(--kpi-to));
+    box-shadow: 0 6px 18px -8px var(--kpi-to);
+}
+.kpi-icon svg { width: 22px; height: 22px; }
+
+.kpi-body { flex: 1; min-width: 0; }
+.kpi-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+.kpi-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.2;
+    word-break: break-word;
+}
+.kpi-value-sm {
+    font-size: 14px;
+    font-weight: 500;
+    font-family: Monaco, Consolas, monospace;
+    color: var(--text-secondary);
+}
+
+.kpi-blue   { --kpi-from: #3699ff; --kpi-to: #1e6fd9; }
+.kpi-green  { --kpi-from: #50cd89; --kpi-to: #16a463; }
+.kpi-violet { --kpi-from: #7239ea; --kpi-to: #4f1fb3; }
+.kpi-amber  { --kpi-from: #ffc700; --kpi-to: #f59e0b; }
+.kpi-pink   { --kpi-from: #f1416c; --kpi-to: #c11d4d; }
+
+/* ============================================================
+   Wallet picker (campaign sender assignment)
+   ============================================================ */
+.wallet-pick-list {
+    max-height: 220px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-input);
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.wallet-pick-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.12s;
+    font-weight: 400;
+    margin: 0;
+}
+.wallet-pick-item:hover { background: var(--bg-hover); }
+.wallet-pick-item input[type=checkbox] { margin-top: 3px; }
+.wallet-pick-item .addr {
+    font-family: Monaco, Consolas, monospace;
+    font-size: 11px;
+    color: var(--text-primary);
+    word-break: break-all;
+}
+
+/* Subtle card lift, applied across admin cards */
+.admin-card {
+    box-shadow: 0 4px 18px -12px rgba(0,0,0,0.6);
+}

@@ -50,6 +50,8 @@
         try {
             const cfg = await api("/config");
             $("thresholdInput").value = cfg.min_threshold_usd;
+            const kpiTh = $("kpiThreshold");
+            if (kpiTh) kpiTh.textContent = `$${Number(cfg.min_threshold_usd).toLocaleString()}`;
         } catch (e) {
             flash($("thresholdStatus"), e.message, true);
         }
@@ -76,6 +78,8 @@
             const s = await api("/status");
             $("statTotal").textContent = s.total_transfers.toLocaleString();
             $("statLastRun").textContent = fmtTime(s.last_run_timestamp);
+            const kpiTT = $("kpiTotalTransfers"); if (kpiTT) kpiTT.textContent = s.total_transfers.toLocaleString();
+            const kpiLR = $("kpiLastRun"); if (kpiLR) kpiLR.textContent = fmtTime(s.last_run_timestamp);
             const blocks = s.last_block_per_token || {};
             const keys = Object.keys(blocks);
             if (!keys.length) {
@@ -94,6 +98,8 @@
     async function loadTokens() {
         try {
             tokens = await api("/tokens");
+            const kpiAT = $("kpiActiveTokens");
+            if (kpiAT) kpiAT.textContent = tokens.filter(t => t.is_active).length;
             renderTokens();
             renderTokenFilter();
         } catch (e) {
@@ -119,6 +125,7 @@
                 <td>
                     <div class="row-actions">
                         <button class="row-btn" data-edit="${t.id}">Edit</button>
+                        <button class="row-btn" data-block="${t.id}" title="Override last scanned block (set to 0 or any number to rescan from there)">Set block</button>
                         <button class="row-btn" data-toggle="${t.id}">${t.is_active ? "Disable" : "Enable"}</button>
                         <button class="row-btn danger" data-del="${t.id}">Delete</button>
                     </div>
@@ -141,9 +148,31 @@
         const editId = t.dataset.edit;
         const toggleId = t.dataset.toggle;
         const delId = t.dataset.del;
+        const blockId = t.dataset.block;
 
         if (editId) openTokenModal(tokens.find(x => x.id == editId));
-        else if (toggleId) {
+        else if (blockId) {
+            const tk = tokens.find(x => x.id == blockId);
+            const cur = tk && tk.last_scanned_block ? tk.last_scanned_block : '';
+            const ans = prompt(
+                `Set "last scanned block" for ${tk ? tk.symbol : 'token'}.\n\n` +
+                `• Enter a positive integer to resume scanning from that block.\n` +
+                `• Enter 0 (or leave blank) to reset — the next scan starts from the chain head.\n\n` +
+                `Current: ${cur || '(unset)'}`,
+                String(cur || '')
+            );
+            if (ans === null) return;
+            const trimmed = ans.trim();
+            const payload = { last_scanned_block: trimmed === '' ? 0 : Number(trimmed) };
+            if (!Number.isFinite(payload.last_scanned_block) || payload.last_scanned_block < 0) {
+                alert('Block must be a non-negative integer.'); return;
+            }
+            try {
+                await api(`/tokens/${blockId}`, { method: "PATCH", body: JSON.stringify(payload) });
+                await loadTokens();
+                await loadStatus();
+            } catch (e) { alert(e.message); }
+        } else if (toggleId) {
             const tk = tokens.find(x => x.id == toggleId);
             try {
                 await api(`/tokens/${toggleId}`, { method: "PATCH", body: JSON.stringify({ is_active: !tk.is_active }) });

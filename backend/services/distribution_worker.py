@@ -147,6 +147,9 @@ class DistributionWorker:
     # ---------------- send tick ----------------
 
     async def _send_tick(self) -> None:
+        from backend.services.distribution_service import get_effective_campaign_wallets
+
+        per_campaign_wallets: list[tuple[int, list[int]]] = []
         async with async_session_factory() as session:
             # Pick all running, non-dry-run campaigns.
             campaigns = list((await session.scalars(
@@ -158,20 +161,26 @@ class DistributionWorker:
             if not campaigns:
                 return
 
-            wallets = list((await session.scalars(
-                select(DistributionWallet).where(DistributionWallet.is_active.is_(True))
-            )).all())
-            if not wallets:
-                self._state.last_error = "No active sender wallets configured."
+            had_any = False
+            for c in campaigns:
+                wallets = await get_effective_campaign_wallets(session, c)
+                if wallets:
+                    had_any = True
+                    per_campaign_wallets.append((c.id, [w.id for w in wallets]))
+                else:
+                    logger.warning("campaign %s has no eligible sender wallets", c.id)
+
+            if not had_any:
+                self._state.last_error = "No active sender wallets configured for any running campaign."
                 return
 
         # Round-robin across (campaign, wallet) until inflight cap reached or no work.
         tasks: list[asyncio.Task] = []
-        for campaign in campaigns:
-            for wallet in wallets:
+        for campaign_id, wallet_ids in per_campaign_wallets:
+            for wallet_id in wallet_ids:
                 if self._inflight_sem is None or self._inflight_sem.locked():
                     break
-                tasks.append(asyncio.create_task(self._process_one(campaign.id, wallet.id)))
+                tasks.append(asyncio.create_task(self._process_one(campaign_id, wallet_id)))
         if tasks:
             await asyncio.gather(*tasks, return_exceptions=True)
 

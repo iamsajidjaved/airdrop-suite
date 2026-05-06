@@ -21,6 +21,7 @@ from backend.db_models import (
     AirdropToken,
     AirdropTransaction,
     DistributionCampaign,
+    DistributionCampaignWallet,
     DistributionRecipient,
     DistributionTransaction,
     DistributionWallet,
@@ -80,10 +81,15 @@ async def create_campaign(
     recipient_filter: dict[str, Any],
     max_total_amount: Optional[Decimal],
     dry_run: bool,
+    sender_mode: str = "multi",
+    sender_wallet_ids: Optional[list[int]] = None,
 ) -> DistributionCampaign:
     token = await session.get(AirdropToken, token_id)
     if token is None:
         raise ValueError(f"Token {token_id} not found")
+
+    if sender_mode not in ("single", "multi"):
+        raise ValueError("sender_mode must be 'single' or 'multi'")
 
     campaign = DistributionCampaign(
         name=name,
@@ -92,13 +98,85 @@ async def create_campaign(
         network=token.network,
         status="draft",
         dry_run=dry_run,
+        sender_mode=sender_mode,
         recipient_filter=recipient_filter or {},
         max_total_amount=max_total_amount,
     )
     session.add(campaign)
     await session.commit()
     await session.refresh(campaign)
+
+    if sender_wallet_ids:
+        await set_campaign_wallets(session, campaign.id, sender_wallet_ids)
+
     return campaign
+
+
+async def set_campaign_wallets(
+    session: AsyncSession, campaign_id: int, wallet_ids: list[int]
+) -> list[int]:
+    """Replace the campaign's assigned-wallet set. Returns the final list (ids).
+
+    Empty list clears the assignment (worker falls back to all active wallets).
+    Validates that each id exists; raises ValueError otherwise.
+    """
+    from sqlalchemy import delete as sa_delete
+
+    if wallet_ids:
+        ids = list({int(i) for i in wallet_ids})
+        existing = set(
+            (await session.scalars(
+                select(DistributionWallet.id).where(DistributionWallet.id.in_(ids))
+            )).all()
+        )
+        missing = [i for i in ids if i not in existing]
+        if missing:
+            raise ValueError(f"Unknown wallet id(s): {missing}")
+    else:
+        ids = []
+
+    await session.execute(
+        sa_delete(DistributionCampaignWallet).where(
+            DistributionCampaignWallet.campaign_id == campaign_id
+        )
+    )
+    if ids:
+        session.add_all(
+            [DistributionCampaignWallet(campaign_id=campaign_id, wallet_id=i) for i in ids]
+        )
+    await session.commit()
+    return ids
+
+
+async def get_campaign_wallet_ids(
+    session: AsyncSession, campaign_id: int
+) -> list[int]:
+    rows = await session.scalars(
+        select(DistributionCampaignWallet.wallet_id)
+        .where(DistributionCampaignWallet.campaign_id == campaign_id)
+        .order_by(DistributionCampaignWallet.wallet_id)
+    )
+    return list(rows.all())
+
+
+async def get_effective_campaign_wallets(
+    session: AsyncSession, campaign: DistributionCampaign
+) -> list[DistributionWallet]:
+    """Return the active sender wallets the worker should use for `campaign`.
+
+    * If the campaign has assignments, only those (filtered to active).
+    * Otherwise, all active wallets.
+    * In single-sender mode, the result is truncated to the first wallet.
+    """
+    assigned = await get_campaign_wallet_ids(session, campaign.id)
+    stmt = select(DistributionWallet).where(DistributionWallet.is_active.is_(True))
+    if assigned:
+        stmt = stmt.where(DistributionWallet.id.in_(assigned))
+    stmt = stmt.order_by(DistributionWallet.id)
+    wallets = list((await session.scalars(stmt)).all())
+    if campaign.sender_mode == "single" and wallets:
+        return [wallets[0]]
+    return wallets
 
 
 async def get_campaign(session: AsyncSession, campaign_id: int) -> DistributionCampaign | None:

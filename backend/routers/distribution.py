@@ -155,6 +155,7 @@ async def _campaign_to_out(session: AsyncSession, c: DistributionCampaign) -> Di
     if c.token is not None:
         out.token_symbol = c.token.symbol
     out.counts = await dist.campaign_counts(session, c.id)
+    out.sender_wallet_ids = await dist.get_campaign_wallet_ids(session, c.id)
     return out
 
 
@@ -188,6 +189,8 @@ async def create_campaign(payload: DistributionCampaignCreate, session: AsyncSes
             recipient_filter=payload.recipient_filter.model_dump(),
             max_total_amount=payload.max_total_amount,
             dry_run=payload.dry_run,
+            sender_mode=payload.sender_mode,
+            sender_wallet_ids=payload.sender_wallet_ids,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -258,15 +261,50 @@ async def patch_campaign(
     payload: dict,
     session: AsyncSession = Depends(get_session),
 ):
-    """Limited PATCH: toggle dry_run, change name, or update max_total_amount."""
+    """Limited PATCH: toggle dry_run, change name, max_total_amount, sender_mode.
+
+    To replace the assigned sender wallet set, use
+    `PUT /campaigns/{id}/wallets`.
+    """
     c = await dist.get_campaign(session, campaign_id)
     if c is None:
         raise HTTPException(status_code=404, detail="Campaign not found")
-    allowed = {"dry_run", "name", "max_total_amount"}
+    allowed = {"dry_run", "name", "max_total_amount", "sender_mode"}
     for k, v in payload.items():
         if k in allowed:
+            if k == "sender_mode" and v not in ("single", "multi"):
+                raise HTTPException(status_code=400, detail="sender_mode must be 'single' or 'multi'")
             setattr(c, k, v)
     await session.commit()
+    await session.refresh(c)
+    return await _campaign_to_out(session, c)
+
+
+@router.put(
+    "/campaigns/{campaign_id}/wallets",
+    response_model=DistributionCampaignOut,
+    dependencies=[Depends(require_admin)],
+)
+async def set_campaign_wallets(
+    campaign_id: int,
+    payload: dict,
+    session: AsyncSession = Depends(get_session),
+):
+    """Replace the sender-wallet assignment for a campaign.
+
+    Body: ``{"sender_wallet_ids": [1, 2, 3]}``. Empty list clears the
+    assignment, causing the worker to fall back to all active wallets.
+    """
+    c = await dist.get_campaign(session, campaign_id)
+    if c is None:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    ids = payload.get("sender_wallet_ids") or []
+    if not isinstance(ids, list):
+        raise HTTPException(status_code=400, detail="sender_wallet_ids must be a list of ints")
+    try:
+        await dist.set_campaign_wallets(session, campaign_id, [int(i) for i in ids])
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     await session.refresh(c)
     return await _campaign_to_out(session, c)
 

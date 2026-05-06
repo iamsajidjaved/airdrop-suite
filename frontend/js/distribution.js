@@ -61,6 +61,7 @@ async function refreshWorker() {
     try {
         const s = await api('GET', '/worker');
         $('workerError').style.display = 'none';
+        const kpiI = $('kpiInFlight'); if (kpiI) kpiI.textContent = s.in_flight ?? 0;
         const cells = [
             ['Status', s.running ? '<span class="dist-pill running">running</span>' : '<span class="dist-pill paused">stopped</span>'],
             ['Interval', `${s.interval_seconds}s`],
@@ -109,6 +110,8 @@ async function refreshWallets() {
     try {
         const includeBal = $('walletsBalances').checked ? '?include_balances=true' : '';
         const wallets = await api('GET', `/wallets${includeBal}`);
+        WALLETS_CACHE = wallets;
+        const kpiW = $('kpiWallets'); if (kpiW) kpiW.textContent = wallets.filter(w => w.is_active).length;
         if (!wallets.length) {
             tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 24px;">No wallets yet.</td></tr>`;
             return;
@@ -181,6 +184,7 @@ async function submitWallet(e) {
 // ---------- Campaigns ----------
 
 let TOKENS_CACHE = [];
+let WALLETS_CACHE = [];
 let CURRENT_CAMPAIGN_ID = null;
 let RECIP_OFFSET = 0;
 const RECIP_LIMIT = 50;
@@ -203,6 +207,10 @@ async function refreshCampaigns() {
     tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color: var(--text-muted); padding: 24px;">Loading…</td></tr>`;
     try {
         const campaigns = await api('GET', '/campaigns');
+        const kpiAC = $('kpiActiveCampaigns');
+        if (kpiAC) kpiAC.textContent = campaigns.filter(c => c.status === 'running').length;
+        const kpiC = $('kpiConfirmed');
+        if (kpiC) kpiC.textContent = campaigns.reduce((s, c) => s + ((c.counts && c.counts.confirmed) || 0), 0).toLocaleString();
         if (!campaigns.length) {
             tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color: var(--text-muted); padding: 24px;">No campaigns yet.</td></tr>`;
             return;
@@ -212,6 +220,10 @@ async function refreshCampaigns() {
             const total = counts.total || 0;
             const done = (counts.confirmed || 0);
             const pct = total ? Math.round((done / total) * 100) : 0;
+            const senderLabel = (c.sender_mode || 'multi') === 'single' ? 'single' : 'multi';
+            const senderCount = (c.sender_wallet_ids && c.sender_wallet_ids.length)
+                ? `${c.sender_wallet_ids.length} assigned`
+                : 'all active';
             const confirmActions = [];
             if (c.status === 'ready' || c.status === 'paused') confirmActions.push(`<button class="row-btn" data-c-action="start" data-id="${c.id}">Start</button>`);
             if (c.status === 'running') confirmActions.push(`<button class="row-btn" data-c-action="pause" data-id="${c.id}">Pause</button>`);
@@ -227,7 +239,12 @@ async function refreshCampaigns() {
                 <td>${escapeHtml(c.token_symbol || c.token_id)}</td>
                 <td class="mono">${fmtNum(c.amount_per_recipient)}</td>
                 <td>${pill(c.status)}</td>
-                <td>${c.dry_run ? '<span class="dist-pill draft">dry‑run</span>' : '<span class="dist-pill ready">live</span>'}</td>
+                <td>
+                    <div style="display:flex; flex-direction:column; gap:2px;">
+                        <span class="dist-pill ${senderLabel === 'single' ? 'paused' : 'running'}">${senderLabel}</span>
+                        <span style="font-size:10px; color:var(--text-muted);">${senderCount}${c.dry_run ? ' · <span style="color:#fbbf24;">dry‑run</span>' : ''}</span>
+                    </div>
+                </td>
                 <td style="min-width: 160px;">
                     <div class="progress-bar"><div class="fill" style="width:${pct}%"></div></div>
                     <div style="font-size: 11px; color: var(--text-muted); margin-top:4px;">
@@ -274,8 +291,45 @@ function openCampaignModal() {
     $('filtMinUsd').value = '';
     $('filtLimit').value = '';
     $('campDryRun').checked = true;
+    document.querySelectorAll('input[name="campSenderMode"]').forEach(r => { r.checked = (r.value === 'multi'); });
+    renderCampaignWalletPicker();
+    updateAmountHint();
     $('campFormError').style.display = 'none';
     $('campaignModal').style.display = 'flex';
+}
+
+function renderCampaignWalletPicker() {
+    const box = $('campWallets');
+    if (!box) return;
+    if (!WALLETS_CACHE.length) {
+        box.innerHTML = `<div style="color:var(--text-muted); font-size:12px;">No sender wallets configured. Add one first — the campaign will fall back to all active wallets if none are assigned.</div>`;
+        return;
+    }
+    box.innerHTML = WALLETS_CACHE.map(w => `
+        <label class="wallet-pick-item">
+            <input type="checkbox" data-wid="${w.id}" ${w.is_active ? '' : 'disabled'}>
+            <div>
+                <div class="addr">${escapeHtml(w.address)}</div>
+                <div style="font-size:11px; color:var(--text-muted);">${escapeHtml(w.label || '')}${w.is_active ? '' : ' · inactive'}</div>
+            </div>
+        </label>
+    `).join('');
+}
+
+function selectedSenderWalletIds() {
+    return Array.from(document.querySelectorAll('#campWallets input[type=checkbox]:checked'))
+        .map(el => Number(el.dataset.wid))
+        .filter(n => Number.isFinite(n));
+}
+
+function updateAmountHint() {
+    const hint = $('campAmountHint');
+    if (!hint) return;
+    const tokenId = Number($('campToken').value);
+    const tok = TOKENS_CACHE.find(t => t.id === tokenId);
+    if (!tok) { hint.textContent = ' '; return; }
+    const min = Math.pow(10, -tok.decimals);
+    hint.innerHTML = `<strong>${escapeHtml(tok.symbol)}</strong> has <strong>${tok.decimals}</strong> decimals · minimum representable unit = <span class="mono">${min.toFixed(tok.decimals)}</span>`;
 }
 function closeCampaignModal() { $('campaignModal').style.display = 'none'; }
 
@@ -293,6 +347,7 @@ async function submitCampaign(e) {
             exclude_addresses: [],
         };
         Object.keys(filter).forEach(k => filter[k] === null && delete filter[k]);
+        const senderModeEl = document.querySelector('input[name="campSenderMode"]:checked');
         const payload = {
             name: $('campName').value.trim(),
             token_id: Number($('campToken').value),
@@ -300,6 +355,8 @@ async function submitCampaign(e) {
             recipient_filter: filter,
             max_total_amount: $('campMaxTotal').value || null,
             dry_run: $('campDryRun').checked,
+            sender_mode: senderModeEl ? senderModeEl.value : 'multi',
+            sender_wallet_ids: selectedSenderWalletIds(),
         };
         if (!payload.max_total_amount) delete payload.max_total_amount;
         await api('POST', '/campaigns', payload);
@@ -398,6 +455,14 @@ document.addEventListener('DOMContentLoaded', () => {
     $('campCancelBtn').addEventListener('click', closeCampaignModal);
     $('campaignForm').addEventListener('submit', submitCampaign);
     $('campaignsTbody').addEventListener('click', handleCampaignAction);
+    $('campToken').addEventListener('change', updateAmountHint);
+    const minBtn = $('campAmountMinBtn');
+    if (minBtn) minBtn.addEventListener('click', () => {
+        const tokenId = Number($('campToken').value);
+        const tok = TOKENS_CACHE.find(t => t.id === tokenId);
+        if (!tok) { alert('Pick a token first.'); return; }
+        $('campAmount').value = Math.pow(10, -tok.decimals).toFixed(tok.decimals);
+    });
 
     $('detailRefreshBtn').addEventListener('click', () => { RECIP_OFFSET = 0; refreshRecipients(); });
     $('detailCloseBtn').addEventListener('click', closeCampaignDetail);

@@ -245,6 +245,11 @@ class DistributionCampaignCreate(BaseModel):
     recipient_filter: RecipientFilter = Field(default_factory=RecipientFilter)
     max_total_amount: Optional[Decimal] = Field(None, gt=0)
     dry_run: bool = True
+    sender_mode: Literal["single", "multi"] = "multi"
+    # If empty, the worker uses all active sender wallets (legacy behavior).
+    # If non-empty, only these wallets are used; in single-sender mode only the
+    # first id (sorted asc) actually sends.
+    sender_wallet_ids: list[int] = Field(default_factory=list)
 
 
 class DistributionCampaignOut(BaseModel):
@@ -257,6 +262,8 @@ class DistributionCampaignOut(BaseModel):
     network: str
     status: str
     dry_run: bool
+    sender_mode: str = "multi"
+    sender_wallet_ids: list[int] = Field(default_factory=list)
     recipient_filter: dict
     max_total_amount: Optional[Decimal] = None
     created_at: datetime
