@@ -24,23 +24,17 @@
         </a>
 
         <nav class="sidebar-nav">
-            <div class="sidebar-section-label">Navigation</div>
+            <div class="sidebar-section-label">Wallet Explorer</div>
             <!-- headerBackBtn ID is required — explorer.js attaches a click handler to it -->
-            <a href="/" class="sidebar-nav-item" id="headerBackBtn">
+            <a href="/" class="sidebar-nav-item active" id="headerBackBtn">
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="11" cy="11" r="8"/>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    <rect x="3" y="3" width="7" height="7"/>
+                    <rect x="14" y="3" width="7" height="7"/>
+                    <rect x="14" y="14" width="7" height="7"/>
+                    <rect x="3" y="14" width="7" height="7"/>
                 </svg>
-                New Search
+                Wallet Explorer
             </a>
-
-            <div class="sidebar-section-label" style="margin-top: 8px;">Current Wallet</div>
-            <div class="sidebar-wallet-info">
-                <div class="sidebar-wallet-label">Viewing Address</div>
-                <div class="sidebar-wallet-address" id="sidebarWalletAddr">—</div>
-            </div>
-
-            <div class="sidebar-section-label" style="margin-top: 16px;">Wallet Explorer</div>
             <a href="/admin/airdrop" class="sidebar-nav-item">
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="11" cy="11" r="8"/>
@@ -48,7 +42,6 @@
                 </svg>
                 Transaction Scanner
             </a>
-
             <div class="sidebar-section-label" style="margin-top: 16px;">Airdrop</div>
             <a href="/admin/distribution" class="sidebar-nav-item">
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -57,6 +50,12 @@
                 Campaigns
             </a>
         </nav>
+
+        <div class="sidebar-section-label" style="margin-top: 16px; padding: 0 20px;">Current Wallet</div>
+        <div class="sidebar-wallet-info">
+            <div class="sidebar-wallet-label">Viewing Address</div>
+            <div class="sidebar-wallet-address" id="sidebarWalletAddr">—</div>
+        </div>
     </aside>
 
     <!-- ===== TOP HEADER ===== -->
