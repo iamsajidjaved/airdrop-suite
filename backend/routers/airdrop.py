@@ -392,3 +392,27 @@ async def trigger_prune(
         "contract_pruned": contract_pruned,
         "aggregate_pruned": aggregate,
     }
+
+
+# ---------------- Operational reset ----------------
+
+@router.post("/admin/reset", dependencies=[Depends(require_admin)])
+async def reset_data(
+    include_blocklist: bool = Query(False, description="Also truncate quality_address_blocklist"),
+    include_wallets: bool = Query(False, description="Also truncate distribution_wallets (DESTRUCTIVE: encrypted private keys are lost)"),
+):
+    """Wipe collected runtime data so a fresh scan can start from a clean slate.
+
+    Always truncates: airdrop_transactions, wallet_contract_cache,
+    distribution_campaigns, distribution_recipients, distribution_transactions.
+    Always resets last_scanned_block on every airdrop_tokens row.
+
+    Schema and operator-managed config (token list, threshold) are preserved.
+    """
+    from backend.services.reset_service import reset_collected_data
+
+    return await reset_collected_data(
+        include_blocklist=include_blocklist,
+        include_wallets=include_wallets,
+    )
+

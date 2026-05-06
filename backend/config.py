@@ -17,6 +17,20 @@ class Settings(BaseSettings):
     etherscan_base_url: str = "https://api.etherscan.io/v2/api"
     trongrid_base_url: str = "https://api.trongrid.io"
 
+    # Network selection. Etherscan v2 is a unified endpoint keyed by chain id:
+    #   1         = Ethereum mainnet
+    #   11155111  = Sepolia testnet
+    #   17000     = Holesky testnet
+    # Switch to a testnet by setting ETHERSCAN_CHAIN_ID and pointing
+    # ETH_RPC_URL at the matching JSON-RPC node. The admin UI (or
+    # AIRDROP_SEED_TOKENS) must also be re-pointed at testnet token contracts;
+    # mainnet contract addresses do not exist on Sepolia/Holesky.
+    etherscan_chain_id: int = 1
+    # Free-form label surfaced in logs / status payloads. Purely informational
+    # ("mainnet", "sepolia", "holesky", ...). Defaults are inferred but can be
+    # overridden via env.
+    network_environment: str = "mainnet"
+
     # Database
     database_url: str
 
