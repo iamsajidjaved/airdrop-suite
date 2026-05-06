@@ -6,9 +6,11 @@ A web application for exploring cryptocurrency wallet transactions across Ethere
 
 - **Wallet exploration** — live lookup of ETH / ERC-20 transactions via Etherscan and TRX / TRC-20 via TronGrid.
 - **Airdrop monitor** — scheduled or on-demand scan of configured ERC-20 tokens (e.g. USDT, USDC) for transfers ≥ a configurable USD threshold; deduplicated and persisted to Postgres.
-- **Admin panel** — manage monitored tokens, edit the USD threshold, browse stored transfers, trigger monitor runs.
+- **Quality filter** — multi-stage rejection of contracts, aggregators, dormant singletons and blocklisted addresses, so only real recipient candidates land in the pool.
+- **Token distribution** — sign and broadcast ERC-20 transfers from sender wallets stored encrypted at rest. Per-campaign **sender mode** (single or multi-wallet parallel) and explicit **sender wallet assignment**; minimum-unit helper in the campaign UI.
+- **Admin panel** — manage monitored tokens (including overriding `last_scanned_block` per token), edit the USD threshold, browse stored transfers, run the monitor, and manage campaigns / sender wallets.
 - **Filtering & export** — date range, network, counterparty, and direction filters; CSV export.
-- **Dark UI** — vanilla JS + CSS, no build step.
+- **Modern dashboard UI** — vanilla JS + CSS, no build step. Metronic-inspired layout with KPI tiles, gradient accents, and per-campaign progress.
 
 ## Tech stack
 
@@ -85,12 +87,21 @@ A short summary — see [`.claude/specs/api.md`](.claude/specs/api.md) for full 
 
 **Airdrop admin (token CRUD + config):**
 - `GET / POST /api/airdrop/tokens`
-- `PATCH / DELETE /api/airdrop/tokens/{id}`
+- `PATCH / DELETE /api/airdrop/tokens/{id}` — PATCH accepts `last_scanned_block` to override / reset block tracking per token (the admin UI exposes this via the **Set block** action).
 - `GET / PUT /api/airdrop/config`
 - `GET /api/airdrop/quality/stats`, `GET /api/airdrop/quality/blocklist`
 - `POST / DELETE /api/airdrop/quality/blocklist` *(admin)*
 - `POST /api/airdrop/quality/prune` *(admin)*
 - `POST /api/airdrop/admin/reset` *(admin — see "Resetting the database" below)*
+
+**Distribution (admin):**
+- `GET / POST / PATCH / DELETE /api/distribution/wallets`
+- `GET / POST /api/distribution/campaigns` — `POST` body accepts `sender_mode` (`"single"` | `"multi"`, default `"multi"`) and `sender_wallet_ids` (list of wallet ids; empty = use all active wallets).
+- `PATCH /api/distribution/campaigns/{id}` — may also update `sender_mode`.
+- `PUT /api/distribution/campaigns/{id}/wallets` — replace the assigned wallet set; body `{ "sender_wallet_ids": [1, 2] }`.
+- `POST /api/distribution/campaigns/{id}/build|start|pause|retry-failed`
+- `GET /api/distribution/campaigns/{id}/recipients`
+- `GET / POST /api/distribution/worker/{start|stop}`
 
 ## Running the airdrop monitor from the CLI
 
