@@ -12,7 +12,13 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:8000/)",
       "Bash(curl -s http://127.0.0.1:8000/)",
       "Bash(curl -s http://127.0.0.1:8000/explorer)",
-      "Bash(curl -s http://127.0.0.1:8000/static/css/styles.css?v=7)"
+      "Bash(curl -s http://127.0.0.1:8000/static/css/styles.css?v=7)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Sajid\\\\Documents\\\\wallet-explorer\" -Force)",
+      "Bash(Select-Object Name, Mode)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Sajid\\\\Documents\\\\wallet-explorer\" | Where-Object { $_.Name -ne \".venv\" } | ForEach-Object { \"$\\($_.Mode\\) $\\($_.Name\\)\" })",
+      "Bash(New-Item -ItemType Directory -Force -Path \"C:\\\\Users\\\\Sajid\\\\Documents\\\\wallet-explorer\\\\scripts\")",
+      "Bash(Out-Null)",
+      "Bash(Write-Output \"done\")"
     ]
   }
 }

@@ -112,6 +112,50 @@ class EtherscanService:
             logger.error(f"Error fetching ERC-20 transactions: {type(e).__name__}: {e}")
             raise
     
+    async def get_contract_token_transfers(
+        self,
+        contract_address: str,
+        start_block: int = 0,
+        end_block: int = 99999999,
+        page: int = 1,
+        offset: int = 1000
+    ) -> list[dict]:
+        """Fetch all ERC-20 transfers for a token contract (no wallet filter)."""
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                params = {
+                    "chainid": "1",
+                    "module": "account",
+                    "action": "tokentx",
+                    "contractaddress": contract_address,
+                    "startblock": start_block,
+                    "endblock": end_block,
+                    "page": page,
+                    "offset": offset,
+                    "sort": "asc",
+                    "apikey": self.api_key
+                }
+
+                logger.info(f"Fetching contract token transfers for {contract_address} from block {start_block}")
+
+                response = await client.get(self.base_url, params=params)
+                logger.info(f"Etherscan contract transfer response status: {response.status_code}")
+
+                data = response.json()
+
+                if data.get("status") == "1" and data.get("result"):
+                    logger.info(f"Found {len(data['result'])} transfers for contract {contract_address}")
+                    return data["result"]
+                elif data.get("status") == "0":
+                    logger.warning(f"Etherscan API returned status 0: {data.get('message')}")
+                    return []
+                else:
+                    logger.error(f"Unexpected Etherscan response: {data}")
+                    return []
+        except Exception as e:
+            logger.error(f"Error fetching contract token transfers: {type(e).__name__}: {e}")
+            raise
+
     async def get_all_transactions(self, address: str) -> list[Transaction]:
         """Fetch all transactions (normal + ERC-20) for an address"""
         logger.info(f"Starting to fetch all transactions for Ethereum address: {address}")

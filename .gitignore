@@ -22,3 +22,7 @@ venv/
 # OS
 .DS_Store
 Thumbs.db
+
+# Airdrop monitor data (collected recipient addresses + scan state)
+data/
+

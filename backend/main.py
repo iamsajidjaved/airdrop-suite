@@ -6,7 +6,7 @@ from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pathlib import Path
-from backend.routers import transactions
+from backend.routers import transactions, airdrop
 from backend.config import settings
 
 # Configure logging
@@ -35,6 +35,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(transactions.router)
+app.include_router(airdrop.router)
 
 # Middleware: disable caching on all static JS/CSS so browsers always fetch fresh files
 @app.middleware("http")
