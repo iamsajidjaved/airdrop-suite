@@ -51,7 +51,8 @@ Or use `start.ps1` / `start.bat` — they wrap the `uv sync` + uvicorn step (the
 App routes once running:
 - `http://127.0.0.1:8000/` — wallet input (`frontend/index.html`)
 - `http://127.0.0.1:8000/explorer` — transaction dashboard
-- `http://127.0.0.1:8000/admin/airdrop` — airdrop admin
+- `http://127.0.0.1:8000/admin/airdrop` — airdrop monitor admin
+- `http://127.0.0.1:8000/admin/distribution` — token distribution admin (Phase 2)
 - `http://127.0.0.1:8000/docs` — FastAPI auto-docs
 
 ## Environment variables
@@ -65,6 +66,12 @@ Optional:
 - `HOST`, `PORT` — uvicorn bind (defaults `127.0.0.1`, `8000`)
 - `AIRDROP_PAGE_SIZE` — Etherscan page size for the monitor (default `1000`)
 - `AIRDROP_SEED_TOKENS`, `AIRDROP_SEED_THRESHOLD_USD` — only consumed by the initial seed migration
+
+Required only for token distribution (Phase 2; see `.claude/specs/distribution.md`):
+- `ETH_RPC_URL` — Ethereum JSON-RPC endpoint (Sepolia recommended for first-run validation)
+- `AIRDROP_KEK` — base64 of 32 random bytes; encrypts sender private keys at rest. Generate: `uv run python -c "import os, base64; print(base64.b64encode(os.urandom(32)).decode())"`
+- `AIRDROP_ADMIN_TOKEN` — shared secret required by `X-Admin-Token` header on all distribution writes
+- `DISTRIBUTION_WORKER_ENABLED` — default `false`; flip to `true` to auto-start the sender worker on boot
 
 ## Conventions
 
@@ -85,6 +92,7 @@ Optional:
 | Endpoint reference | `.claude/specs/api.md` |
 | DB schema + migration workflow | `.claude/specs/database.md` |
 | How the airdrop scanner works | `.claude/specs/airdrop-monitor.md` |
+| How token distribution works (Phase 2) | `.claude/specs/distribution.md` |
 | Production deployment | `DEPLOYMENT.md` |
 
 When in doubt, the code is small enough to read directly — `backend/` is ~10 files.

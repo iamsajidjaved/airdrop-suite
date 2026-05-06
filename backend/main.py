@@ -7,9 +7,10 @@ from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pathlib import Path
-from backend.routers import transactions, airdrop
+from backend.routers import transactions, airdrop, distribution
 from backend.config import settings
 from backend.services.airdrop_scheduler import scheduler as airdrop_scheduler
+from backend.services.distribution_worker import worker as distribution_worker
 
 # Configure logging
 logging.basicConfig(
@@ -23,11 +24,15 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     # Startup: launch the airdrop monitor background loop (if enabled).
     airdrop_scheduler.start()
+    # Distribution worker is opt-in (default off). Start only when explicitly enabled.
+    if settings.distribution_worker_enabled:
+        distribution_worker.start()
     try:
         yield
     finally:
-        # Shutdown: cleanly cancel and await the loop.
+        # Shutdown: cleanly cancel and await both loops.
         await airdrop_scheduler.stop()
+        await distribution_worker.stop()
 
 
 # Create FastAPI app
@@ -50,6 +55,7 @@ app.add_middleware(
 # Include routers
 app.include_router(transactions.router)
 app.include_router(airdrop.router)
+app.include_router(distribution.router)
 
 # Middleware: disable caching on all static JS/CSS so browsers always fetch fresh files
 @app.middleware("http")
@@ -92,6 +98,15 @@ async def admin_airdrop():
     if admin_path.exists():
         return FileResponse(admin_path)
     return {"message": "Admin page not found"}
+
+
+@app.get("/admin/distribution")
+async def admin_distribution():
+    """Serve the distribution admin page"""
+    page = frontend_path / "distribution.html"
+    if page.exists():
+        return FileResponse(page)
+    return {"message": "Distribution admin page not found"}
 
 
 @app.get("/api/health")

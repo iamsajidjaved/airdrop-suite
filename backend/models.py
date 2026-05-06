@@ -173,3 +173,152 @@ class AirdropTransactionListResponse(BaseModel):
     limit: int
     offset: int
     items: list[AirdropTransactionOut]
+
+
+# ============================================================
+#                Phase 2: Token Distribution
+# ============================================================
+
+import re
+
+_HEX_ADDR_RE = re.compile(r"0x[0-9a-f]{40}")
+
+
+def _norm_address(v: str) -> str:
+    v = v.strip().lower()
+    if not _HEX_ADDR_RE.fullmatch(v):
+        raise ValueError("address must be a 0x-prefixed 40-hex-char Ethereum address")
+    return v
+
+
+# ----- Wallets -----
+
+class DistributionWalletCreate(BaseModel):
+    private_key: str = Field(..., description="0x-prefixed 64-hex-char private key. Stored encrypted.")
+    label: Optional[str] = Field(None, max_length=128)
+
+
+class DistributionWalletUpdate(BaseModel):
+    label: Optional[str] = Field(None, max_length=128)
+    is_active: Optional[bool] = None
+
+
+class DistributionWalletOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    address: str
+    label: Optional[str] = None
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+    # Live balances are added by the router; not stored.
+    eth_balance: Optional[Decimal] = None
+    token_balances: Optional[dict[str, Decimal]] = None
+
+
+# ----- Campaigns -----
+
+class RecipientFilter(BaseModel):
+    """Filter applied against `airdrop_transactions` when building recipients."""
+    token_symbol: Optional[str] = None
+    from_date: Optional[str] = Field(None, description="YYYY-MM-DD UTC, inclusive")
+    to_date: Optional[str] = Field(None, description="YYYY-MM-DD UTC, inclusive")
+    min_amount_usd: Optional[float] = Field(None, ge=0)
+    limit: Optional[int] = Field(None, ge=1, le=1_000_000)
+    exclude_addresses: list[str] = Field(default_factory=list)
+
+    @field_validator("token_symbol")
+    @classmethod
+    def _upper(cls, v):
+        return v.strip().upper() if v else v
+
+    @field_validator("exclude_addresses")
+    @classmethod
+    def _norm_excludes(cls, v):
+        return [_norm_address(a) for a in (v or [])]
+
+
+class DistributionCampaignCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=128)
+    token_id: int
+    amount_per_recipient: Decimal = Field(..., gt=0)
+    recipient_filter: RecipientFilter = Field(default_factory=RecipientFilter)
+    max_total_amount: Optional[Decimal] = Field(None, gt=0)
+    dry_run: bool = True
+
+
+class DistributionCampaignOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    name: str
+    token_id: int
+    token_symbol: Optional[str] = None
+    amount_per_recipient: Decimal
+    network: str
+    status: str
+    dry_run: bool
+    recipient_filter: dict
+    max_total_amount: Optional[Decimal] = None
+    created_at: datetime
+    started_at: Optional[datetime] = None
+    finished_at: Optional[datetime] = None
+    # Progress counters (populated by the router).
+    counts: Optional[dict[str, int]] = None
+
+
+class CampaignBuildResult(BaseModel):
+    campaign_id: int
+    inserted: int
+    total_recipients: int
+
+
+# ----- Recipients -----
+
+class DistributionRecipientOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    campaign_id: int
+    address: str
+    amount: Decimal
+    status: str
+    assigned_wallet_id: Optional[int] = None
+    attempts: int
+    last_error: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    # Latest broadcast tx hash, if any.
+    last_tx_hash: Optional[str] = None
+
+
+class DistributionRecipientListResponse(BaseModel):
+    total: int
+    limit: int
+    offset: int
+    items: list[DistributionRecipientOut]
+
+
+# ----- Worker -----
+
+class DistributionWorkerState(BaseModel):
+    enabled: bool
+    running: bool
+    interval_seconds: int
+    last_tick_at: Optional[str] = None
+    last_error: Optional[str] = None
+    in_flight: int = 0
+    sent_total: int = 0
+    confirmed_total: int = 0
+    failed_total: int = 0
+
+
+# ----- Config (distribution-side) -----
+
+class DistributionConfigOut(BaseModel):
+    eth_rpc_configured: bool
+    kek_configured: bool
+    admin_token_required: bool
+    max_gas_price_gwei: float
+    per_wallet_daily_cap: float
+    max_inflight: int
+    receipt_poll_seconds: int
+    max_retries_per_recipient: int
