@@ -10,8 +10,15 @@ from sqlalchemy import and_, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.auth import require_admin
 from backend.db import get_session
-from backend.db_models import AirdropConfig, AirdropToken, AirdropTransaction
+from backend.db_models import (
+    AirdropConfig,
+    AirdropToken,
+    AirdropTransaction,
+    QualityAddressBlocklist,
+    WalletContractCache,
+)
 from backend.models import (
     AirdropConfigOut,
     AirdropConfigUpdate,
@@ -23,6 +30,7 @@ from backend.models import (
     AirdropTransactionOut,
     MonitorRunResult,
 )
+from backend.services import wallet_quality
 from backend.services.airdrop_monitor import AirdropMonitorService
 from backend.services.airdrop_scheduler import scheduler as airdrop_scheduler
 
@@ -257,3 +265,130 @@ async def update_config(payload: AirdropConfigUpdate, session: AsyncSession = De
         cfg.value = str(payload.min_threshold_usd)
     await session.commit()
     return AirdropConfigOut(min_threshold_usd=payload.min_threshold_usd)
+
+
+# ---------------- Quality filter ----------------
+
+@router.get("/quality/stats")
+async def quality_stats(session: AsyncSession = Depends(get_session)):
+    """High-level counts: blocklist size, contract cache, transactions retained."""
+    block_total = await session.scalar(
+        select(func.count()).select_from(QualityAddressBlocklist)
+    )
+    cache_total = await session.scalar(select(func.count()).select_from(WalletContractCache))
+    contract_total = await session.scalar(
+        select(func.count())
+        .select_from(WalletContractCache)
+        .where(WalletContractCache.is_contract.is_(True))
+    )
+    tx_total = await session.scalar(select(func.count()).select_from(AirdropTransaction))
+    distinct_recipients = await session.scalar(
+        select(func.count(func.distinct(AirdropTransaction.to_address)))
+    )
+    return {
+        "blocklist_entries": int(block_total or 0),
+        "contract_cache_entries": int(cache_total or 0),
+        "known_contracts": int(contract_total or 0),
+        "airdrop_transactions": int(tx_total or 0),
+        "distinct_recipients": int(distinct_recipients or 0),
+    }
+
+
+@router.get("/quality/blocklist")
+async def list_blocklist(
+    network: Optional[str] = Query(None),
+    limit: int = Query(200, ge=1, le=2000),
+    offset: int = Query(0, ge=0),
+    session: AsyncSession = Depends(get_session),
+):
+    stmt = select(QualityAddressBlocklist).order_by(QualityAddressBlocklist.added_at.desc())
+    if network:
+        stmt = stmt.where(QualityAddressBlocklist.network == network)
+    total = await session.scalar(
+        select(func.count())
+        .select_from(QualityAddressBlocklist)
+        .where(QualityAddressBlocklist.network == network) if network
+        else select(func.count()).select_from(QualityAddressBlocklist)
+    )
+    rows = (await session.scalars(stmt.limit(limit).offset(offset))).all()
+    return {
+        "total": int(total or 0),
+        "limit": limit,
+        "offset": offset,
+        "items": [
+            {
+                "id": r.id,
+                "network": r.network,
+                "address": r.address,
+                "reason": r.reason,
+                "source": r.source,
+                "added_at": r.added_at.isoformat() if r.added_at else None,
+            }
+            for r in rows
+        ],
+    }
+
+
+@router.post("/quality/blocklist", status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin)])
+async def add_blocklist_entry(
+    address: str = Query(..., min_length=4, max_length=64),
+    reason: str = Query(..., min_length=1, max_length=64),
+    network: str = Query("ethereum", max_length=32),
+    source: str = Query("manual", max_length=64),
+    session: AsyncSession = Depends(get_session),
+):
+    await wallet_quality.add_to_blocklist(
+        session, address=address, reason=reason, network=network, source=source
+    )
+    return {"ok": True, "address": address.lower(), "network": network}
+
+
+@router.delete("/quality/blocklist", dependencies=[Depends(require_admin)])
+async def delete_blocklist_entry(
+    address: str = Query(...),
+    network: str = Query("ethereum"),
+    session: AsyncSession = Depends(get_session),
+):
+    deleted = await wallet_quality.remove_from_blocklist(
+        session, address=address, network=network
+    )
+    return {"ok": True, "deleted": deleted}
+
+
+@router.post("/quality/prune", dependencies=[Depends(require_admin)])
+async def trigger_prune(
+    network: str = Query("ethereum"),
+    enrich: bool = Query(True, description="Run eth_getCode on unknown to_addresses first"),
+    enrich_limit: int = Query(5000, ge=0, le=50000),
+    session: AsyncSession = Depends(get_session),
+):
+    """Manually re-run the quality prune pipeline against the current DB."""
+    enrich_summary: dict[str, int] = {}
+    if enrich and enrich_limit > 0:
+        unknown = await session.scalars(
+            select(AirdropTransaction.to_address)
+            .where(AirdropTransaction.network == network)
+            .where(
+                AirdropTransaction.to_address.notin_(
+                    select(WalletContractCache.address).where(
+                        WalletContractCache.network == network
+                    )
+                )
+            )
+            .distinct()
+            .limit(enrich_limit)
+        )
+        addrs = list(unknown.all())
+        if addrs:
+            enrich_summary = await wallet_quality.enrich_contracts(
+                session, addrs, network=network
+            )
+
+    contract_pruned = await wallet_quality.prune_contract_recipients(session, network)
+    aggregate = await wallet_quality.prune_low_quality(session, network)
+    return {
+        "network": network,
+        "enriched": enrich_summary,
+        "contract_pruned": contract_pruned,
+        "aggregate_pruned": aggregate,
+    }

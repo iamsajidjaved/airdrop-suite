@@ -67,6 +67,27 @@ class Settings(BaseSettings):
     # Number of recipients sent in parallel across the wallet pool per tick.
     distribution_max_inflight: int = 8
 
+    # ---------------- Quality filter (recipient pruning) ----------------
+    # Master switch. When False, the monitor stores every transfer regardless
+    # of quality (legacy behavior).
+    quality_filter_enabled: bool = True
+    # Inline `eth_getCode` lookups during the monitor pass. Requires
+    # ETH_RPC_URL. Disabled automatically (with a warning) if web3 is not
+    # configured. Cached per address forever in `wallet_contract_cache`.
+    quality_contract_check_enabled: bool = True
+    quality_contract_check_concurrency: int = 4
+    # Per-run aggregator drop: any to_address that receives more than this many
+    # transfers within a single monitor batch is treated as an exchange/router
+    # and all of its rows in that batch are dropped before insert.
+    quality_per_run_aggregator_drop_threshold: int = 50
+    # Aggregate prune (post-insert) thresholds. Addresses exceeding either of
+    # these in the cumulative airdrop_transactions table are deleted.
+    quality_max_inbound_count: int = 1000
+    quality_max_distinct_senders: int = 500
+    # Singleton wallets older than this many days with only one inbound tx are
+    # pruned as low-engagement. Recent singletons get a chance to accumulate.
+    quality_dormant_singleton_days: int = 180
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

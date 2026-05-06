@@ -203,3 +203,41 @@ class DistributionTransaction(Base):
         Index("ix_dist_tx_recipient", "recipient_id"),
         Index("ix_dist_tx_status", "status"),
     )
+
+
+# ===================== Quality Filtering =====================
+
+
+class QualityAddressBlocklist(Base):
+    __tablename__ = "quality_address_blocklist"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    network: Mapped[str] = mapped_column(String(32), nullable=False, default="ethereum", server_default="ethereum")
+    address: Mapped[str] = mapped_column(String(64), nullable=False)
+    reason: Mapped[str] = mapped_column(String(64), nullable=False)
+    source: Mapped[str] = mapped_column(String(64), nullable=False, default="manual", server_default="manual")
+    added_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    __table_args__ = (
+        UniqueConstraint("network", "address", name="uq_quality_blocklist_network_address"),
+        Index("ix_quality_blocklist_address", "address"),
+    )
+
+
+class WalletContractCache(Base):
+    __tablename__ = "wallet_contract_cache"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    network: Mapped[str] = mapped_column(String(32), nullable=False, default="ethereum", server_default="ethereum")
+    address: Mapped[str] = mapped_column(String(64), nullable=False)
+    is_contract: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    checked_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    __table_args__ = (
+        UniqueConstraint("network", "address", name="uq_wallet_contract_cache_network_address"),
+        Index("ix_wallet_contract_cache_address", "address"),
+    )

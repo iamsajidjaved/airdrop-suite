@@ -17,8 +17,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.config import settings
 from backend.db import async_session_factory
-from backend.db_models import AirdropConfig, AirdropToken, AirdropTransaction
+from backend.db_models import AirdropConfig, AirdropToken, AirdropTransaction, WalletContractCache
 from backend.models import AirdropStatusResponse, MonitorRunResult
+from backend.services import wallet_quality
 from backend.services.etherscan import EtherscanService, etherscan_service
 
 logger = logging.getLogger(__name__)
@@ -94,6 +95,41 @@ class AirdropMonitorService:
                 logger.warning(f"Skipping tx due to parse error: {e}")
         return results
 
+    @staticmethod
+    def _apply_quality_gate_a(
+        rows: list[dict],
+        *,
+        blocklist: set[str],
+        known_contracts: set[str],
+        aggregator_threshold: int,
+    ) -> tuple[list[dict], dict[str, int]]:
+        """Drop rows whose recipient is obviously low-quality, before insert.
+
+        Returns (kept_rows, drop_counts). Counts are reported per reason.
+        """
+        if not rows:
+            return rows, {"blocklist": 0, "contract": 0, "self_tx": 0, "aggregator": 0}
+
+        aggregators = wallet_quality.in_batch_aggregator_set(rows, aggregator_threshold)
+        kept: list[dict] = []
+        counts = {"blocklist": 0, "contract": 0, "self_tx": 0, "aggregator": 0}
+        for r in rows:
+            to_addr = r["to_address"]
+            if to_addr in blocklist:
+                counts["blocklist"] += 1
+                continue
+            if to_addr in known_contracts:
+                counts["contract"] += 1
+                continue
+            if to_addr == r["from_address"]:
+                counts["self_tx"] += 1
+                continue
+            if to_addr in aggregators:
+                counts["aggregator"] += 1
+                continue
+            kept.append(r)
+        return kept, counts
+
     async def _fetch_all_pages(
         self, contract: str, start_block: int
     ) -> tuple[list[dict], int]:
@@ -138,6 +174,16 @@ class AirdropMonitorService:
         blocks_scanned_per_token: dict[str, dict] = {}
         new_count = 0
 
+        quality_enabled = settings.quality_filter_enabled
+        quality_drop_totals: dict[str, int] = {
+            "blocklist": 0,
+            "contract": 0,
+            "self_tx": 0,
+            "aggregator": 0,
+        }
+        quality_enrich_summary: dict[str, int] = {}
+        quality_prune_summary: dict[str, int] = {}
+
         # 1) Load config & token specs
         async with async_session_factory() as session:
             tokens = await self._load_active_tokens(session)
@@ -179,6 +225,19 @@ class AirdropMonitorService:
 
         # 3) Persist serially in one transaction
         async with async_session_factory() as session:
+            # Load Gate A inputs once per pass (per network as encountered).
+            blocklist_by_net: dict[str, set[str]] = {}
+            contracts_by_net: dict[str, set[str]] = {}
+            if quality_enabled:
+                for spec in specs:
+                    if spec.network not in blocklist_by_net:
+                        blocklist_by_net[spec.network] = await wallet_quality.load_blocklist(
+                            session, spec.network
+                        )
+                        contracts_by_net[spec.network] = await wallet_quality.load_known_contracts(
+                            session, spec.network
+                        )
+
             for spec, result in zip(specs, results):
                 tokens_scanned.append(spec.symbol)
 
@@ -201,6 +260,20 @@ class AirdropMonitorService:
                 }
 
                 rows = self._filter_and_extract(txs, spec, threshold)
+
+                if quality_enabled and rows:
+                    rows, drop_counts = self._apply_quality_gate_a(
+                        rows,
+                        blocklist=blocklist_by_net.get(spec.network, set()),
+                        known_contracts=contracts_by_net.get(spec.network, set()),
+                        aggregator_threshold=settings.quality_per_run_aggregator_drop_threshold,
+                    )
+                    for k, v in drop_counts.items():
+                        quality_drop_totals[k] += v
+                    blocks_scanned_per_token[spec.symbol]["quality_dropped"] = sum(
+                        drop_counts.values()
+                    )
+
                 if rows:
                     # PostgreSQL has a hard limit of 32767 bind parameters per
                     # statement. Each row has 10 columns, so cap each batch at
@@ -224,11 +297,79 @@ class AirdropMonitorService:
                     )
 
             await session.commit()
+
+        # 4) Gate B: enrich newly-seen recipients via eth_getCode, then prune.
+        if quality_enabled:
+            networks_seen = {spec.network for spec in specs}
+            async with async_session_factory() as session:
+                for net in networks_seen:
+                    # Pull recent unknown to_addresses for this network.
+                    if settings.quality_contract_check_enabled:
+                        unknown_addrs = await session.scalars(
+                            select(AirdropTransaction.to_address)
+                            .where(AirdropTransaction.network == net)
+                            .where(
+                                AirdropTransaction.to_address.notin_(
+                                    select(WalletContractCache.address).where(
+                                        WalletContractCache.network == net
+                                    )
+                                )
+                            )
+                            .distinct()
+                            .limit(5000)
+                        )
+                        addrs = list(unknown_addrs.all())
+                        if addrs:
+                            try:
+                                summary = await wallet_quality.enrich_contracts(
+                                    session, addrs, network=net
+                                )
+                                for k, v in summary.items():
+                                    quality_enrich_summary[k] = (
+                                        quality_enrich_summary.get(k, 0) + v
+                                    )
+                            except Exception as e:  # noqa: BLE001
+                                msg = f"contract-enrich {net}: {type(e).__name__}: {e}"
+                                logger.warning(msg)
+                                errors.append(msg)
+
+                    try:
+                        contract_pruned = await wallet_quality.prune_contract_recipients(
+                            session, net
+                        )
+                        prune = await wallet_quality.prune_low_quality(session, net)
+                        prune["contract"] = contract_pruned
+                        prune["rows_deleted"] = prune.get("rows_deleted", 0) + contract_pruned
+                        for k, v in prune.items():
+                            quality_prune_summary[k] = quality_prune_summary.get(k, 0) + v
+                    except Exception as e:  # noqa: BLE001
+                        msg = f"prune {net}: {type(e).__name__}: {e}"
+                        logger.warning(msg)
+                        errors.append(msg)
+
+        async with async_session_factory() as session:
             total = await session.scalar(select(func.count()).select_from(AirdropTransaction)) or 0
 
         logger.info(
-            f"Monitor run complete. New transfers inserted: {new_count}, Total stored: {total}"
+            "Monitor run complete. inserted=%s total=%s gateA_drops=%s enrich=%s prune=%s",
+            new_count,
+            total,
+            quality_drop_totals,
+            quality_enrich_summary,
+            quality_prune_summary,
         )
+
+        # Surface quality stats via the existing errors[] channel so callers
+        # can see them without a model migration.
+        if quality_enabled:
+            errors.append(
+                "quality: gateA_dropped="
+                + ",".join(f"{k}={v}" for k, v in quality_drop_totals.items() if v)
+                + " enrich="
+                + ",".join(f"{k}={v}" for k, v in quality_enrich_summary.items() if v)
+                + " pruned="
+                + ",".join(f"{k}={v}" for k, v in quality_prune_summary.items() if v)
+            )
 
         return MonitorRunResult(
             tokens_scanned=tokens_scanned,
