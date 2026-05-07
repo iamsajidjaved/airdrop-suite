@@ -107,6 +107,15 @@ async def admin_distribution():
     return {"message": "Distribution admin page not found"}
 
 
+@app.get("/admin/settings")
+async def admin_settings():
+    """Serve the consolidated settings page"""
+    page = frontend_path / "settings.html"
+    if page.exists():
+        return FileResponse(page)
+    return {"message": "Settings page not found"}
+
+
 @app.get("/api/health")
 async def health_check():
     """Health check endpoint"""

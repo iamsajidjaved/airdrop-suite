@@ -1,4 +1,6 @@
-/* Transaction Scanner admin frontend logic */
+/* Transaction Scanner — KPI strip, scanner status, qualifying-transactions table.
+ * Threshold + token management have moved to the Settings page.
+ */
 (() => {
     const API = "/api/airdrop";
     const NET_KEY = "wallet_explorer_active_network";
@@ -13,9 +15,8 @@
     };
     const fmtTime = (iso) => {
         if (!iso) return "—";
-        try {
-            return new Date(iso).toISOString().replace("T", " ").slice(0, 19);
-        } catch { return iso; }
+        try { return new Date(iso).toISOString().replace("T", " ").slice(0, 19); }
+        catch { return iso; }
     };
 
     async function api(path, options = {}) {
@@ -32,18 +33,9 @@
         return data;
     }
 
-    function flash(el, msg, isError = false) {
-        if (!el) return;
-        el.textContent = msg;
-        el.classList.toggle("error", isError);
-        if (msg && !isError) {
-            setTimeout(() => { if (el.textContent === msg) el.textContent = ""; }, 3000);
-        }
-    }
-
     // -------- state --------
     let tokens = [];
-    let networks = [];        // [{key, label, chain_id, explorer}]
+    let networks = [];
     let activeNetwork = localStorage.getItem(NET_KEY) || "ethereum";
     let txOffset = 0;
     const TX_LIMIT = 25;
@@ -56,29 +48,20 @@
 
     // -------- networks --------
     async function loadNetworks() {
-        try {
-            networks = await api("/networks");
-        } catch {
+        try { networks = await api("/networks"); }
+        catch {
             networks = [
                 { key: "ethereum", label: "Ethereum Mainnet", chain_id: 1, explorer: "https://etherscan.io" },
-                { key: "sepolia",  label: "Sepolia Testnet", chain_id: 11155111, explorer: "https://sepolia.etherscan.io" },
+                { key: "sepolia",  label: "Sepolia Testnet",  chain_id: 11155111, explorer: "https://sepolia.etherscan.io" },
             ];
         }
         if (!networks.find(n => n.key === activeNetwork)) {
             activeNetwork = networks[0]?.key || "ethereum";
         }
         const sel = $("networkSelect");
-        sel.innerHTML = networks.map(n =>
-            `<option value="${n.key}">${n.label}</option>`
-        ).join("");
+        sel.innerHTML = networks.map(n => `<option value="${n.key}">${n.label}</option>`).join("");
         sel.value = activeNetwork;
         updateNetworkDot();
-
-        // Populate token modal network select with the same list
-        const tns = $("tokenNetwork");
-        tns.innerHTML = networks.map(n =>
-            `<option value="${n.key}">${n.label}</option>`
-        ).join("");
     }
 
     function updateNetworkDot() {
@@ -93,38 +76,19 @@
         localStorage.setItem(NET_KEY, activeNetwork);
         updateNetworkDot();
         txOffset = 0;
-        renderTokens();
         renderTokenFilter();
+        updateActiveTokensKpi();
         await loadTx();
     });
 
-    // -------- threshold --------
+    // -------- threshold KPI --------
     async function loadThreshold() {
         try {
             const cfg = await api("/config");
-            $("thresholdInput").value = cfg.min_threshold_usd;
             const kpiTh = $("kpiThreshold");
             if (kpiTh) kpiTh.textContent = `$${Number(cfg.min_threshold_usd).toLocaleString()}`;
-        } catch (e) {
-            flash($("thresholdStatus"), e.message, true);
-        }
+        } catch { /* KPI optional */ }
     }
-
-    $("thresholdForm").addEventListener("submit", async (ev) => {
-        ev.preventDefault();
-        const val = parseFloat($("thresholdInput").value);
-        if (!(val > 0)) {
-            flash($("thresholdStatus"), "Threshold must be > 0", true);
-            return;
-        }
-        try {
-            await api("/config", { method: "PUT", body: JSON.stringify({ min_threshold_usd: val }) });
-            flash($("thresholdStatus"), "Saved");
-            loadThreshold();
-        } catch (e) {
-            flash($("thresholdStatus"), e.message, true);
-        }
-    });
 
     // -------- status --------
     async function loadStatus() {
@@ -148,51 +112,22 @@
         }
     }
 
-    // -------- tokens --------
+    // -------- tokens (read-only here, used by KPI + tx filter) --------
     async function loadTokens() {
         try {
             tokens = await api("/tokens");
-            renderTokens();
             renderTokenFilter();
-        } catch (e) {
-            $("tokensError").style.display = "block";
-            $("tokensError").textContent = e.message;
-        }
+            updateActiveTokensKpi();
+        } catch { /* token list optional */ }
     }
 
     function tokensForActive() {
         return tokens.filter(t => (t.network || "").toLowerCase() === activeNetwork);
     }
 
-    function renderTokens() {
-        const tbody = $("tokensTbody");
-        const list = tokensForActive();
-        const kpiAT = $("kpiActiveTokens");
-        if (kpiAT) kpiAT.textContent = list.filter(t => t.is_active).length;
-        if (!list.length) {
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 24px;">No tokens for this network. Click "+ Add Token" to add one.</td></tr>`;
-            return;
-        }
-        tbody.innerHTML = list.map(t => {
-            const netLabel = (networks.find(n => n.key === t.network) || {}).label || t.network;
-            return `
-            <tr>
-                <td><strong>${t.symbol}</strong></td>
-                <td><span class="addr" title="${t.contract_address}">${fmtAddr(t.contract_address)}</span></td>
-                <td>${t.decimals}</td>
-                <td><span class="net-pill net-${t.network}">${netLabel}</span></td>
-                <td><span class="pill ${t.is_active ? "pill-active" : "pill-inactive"}">${t.is_active ? "Active" : "Disabled"}</span></td>
-                <td class="mono">${t.last_scanned_block ? Number(t.last_scanned_block).toLocaleString() : "—"}</td>
-                <td>
-                    <div class="row-actions">
-                        <button class="row-btn" data-edit="${t.id}">Edit</button>
-                        <button class="row-btn" data-block="${t.id}" title="Override last scanned block (set to 0 to rescan from start)">Block</button>
-                        <button class="row-btn" data-toggle="${t.id}">${t.is_active ? "Disable" : "Enable"}</button>
-                        <button class="row-btn danger" data-del="${t.id}">Delete</button>
-                    </div>
-                </td>
-            </tr>`;
-        }).join("");
+    function updateActiveTokensKpi() {
+        const kpi = $("kpiActiveTokens");
+        if (kpi) kpi.textContent = tokensForActive().filter(t => t.is_active).length;
     }
 
     function renderTokenFilter() {
@@ -203,96 +138,6 @@
             list.map(t => `<option value="${t.symbol}">${t.symbol}</option>`).join("");
         sel.value = current;
     }
-
-    $("tokensTbody").addEventListener("click", async (ev) => {
-        const t = ev.target;
-        if (!(t instanceof HTMLElement)) return;
-        const editId = t.dataset.edit;
-        const toggleId = t.dataset.toggle;
-        const delId = t.dataset.del;
-        const blockId = t.dataset.block;
-
-        if (editId) openTokenModal(tokens.find(x => x.id == editId));
-        else if (blockId) {
-            const tk = tokens.find(x => x.id == blockId);
-            const cur = tk && tk.last_scanned_block ? tk.last_scanned_block : '';
-            const ans = prompt(
-                `Set "last scanned block" for ${tk ? tk.symbol : 'token'}.\n\n` +
-                `• Enter a positive integer to resume scanning from that block.\n` +
-                `• Enter 0 (or leave blank) to reset.\n\n` +
-                `Current: ${cur || '(unset)'}`,
-                String(cur || '')
-            );
-            if (ans === null) return;
-            const trimmed = ans.trim();
-            const payload = { last_scanned_block: trimmed === '' ? 0 : Number(trimmed) };
-            if (!Number.isFinite(payload.last_scanned_block) || payload.last_scanned_block < 0) {
-                alert('Block must be a non-negative integer.'); return;
-            }
-            try {
-                await api(`/tokens/${blockId}`, { method: "PATCH", body: JSON.stringify(payload) });
-                await loadTokens();
-                await loadStatus();
-            } catch (e) { alert(e.message); }
-        } else if (toggleId) {
-            const tk = tokens.find(x => x.id == toggleId);
-            try {
-                await api(`/tokens/${toggleId}`, { method: "PATCH", body: JSON.stringify({ is_active: !tk.is_active }) });
-                await loadTokens();
-            } catch (e) { alert(e.message); }
-        } else if (delId) {
-            if (!confirm("Delete this token? Fails if there are stored transactions.")) return;
-            try {
-                await api(`/tokens/${delId}`, { method: "DELETE" });
-                await loadTokens();
-            } catch (e) { alert(e.message); }
-        }
-    });
-
-    // -------- token modal --------
-    function openTokenModal(token) {
-        $("tokenModalTitle").textContent = token ? "Edit Token" : "Add Token";
-        $("tokenId").value = token ? token.id : "";
-        $("tokenSymbol").value = token ? token.symbol : "";
-        $("tokenContract").value = token ? token.contract_address : "";
-        $("tokenDecimals").value = token ? token.decimals : 6;
-        $("tokenNetwork").value = token ? token.network : activeNetwork;
-        $("tokenActive").checked = token ? token.is_active : true;
-        $("tokenFormError").style.display = "none";
-        $("tokenModal").style.display = "flex";
-    }
-
-    function closeTokenModal() { $("tokenModal").style.display = "none"; }
-
-    $("addTokenBtn").addEventListener("click", () => openTokenModal(null));
-    $("tokenCancelBtn").addEventListener("click", closeTokenModal);
-    $("tokenModal").addEventListener("click", (ev) => {
-        if (ev.target === $("tokenModal")) closeTokenModal();
-    });
-
-    $("tokenForm").addEventListener("submit", async (ev) => {
-        ev.preventDefault();
-        const id = $("tokenId").value;
-        const payload = {
-            symbol: $("tokenSymbol").value.trim(),
-            contract_address: $("tokenContract").value.trim(),
-            decimals: parseInt($("tokenDecimals").value, 10),
-            network: $("tokenNetwork").value.trim() || activeNetwork,
-            is_active: $("tokenActive").checked,
-        };
-        try {
-            if (id) {
-                await api(`/tokens/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
-            } else {
-                await api("/tokens", { method: "POST", body: JSON.stringify(payload) });
-            }
-            closeTokenModal();
-            await loadTokens();
-        } catch (e) {
-            $("tokenFormError").style.display = "block";
-            $("tokenFormError").textContent = e.message;
-        }
-    });
 
     // -------- transactions --------
     async function loadTx() {
@@ -347,10 +192,7 @@
         loadTx();
     });
     $("txNext").addEventListener("click", () => {
-        if (txOffset + TX_LIMIT < txTotal) {
-            txOffset += TX_LIMIT;
-            loadTx();
-        }
+        if (txOffset + TX_LIMIT < txTotal) { txOffset += TX_LIMIT; loadTx(); }
     });
     $("txTokenFilter").addEventListener("change", () => { txOffset = 0; loadTx(); });
     $("txRefreshBtn").addEventListener("click", () => loadTx());

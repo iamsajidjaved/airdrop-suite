@@ -580,3 +580,75 @@
 
 /* Threshold input compact */
 .threshold-form .wallet-input { padding: 8px 12px; font-size: 12px; }
+
+
+/* ================================================================
+   SETTINGS PAGE — tabs + section layout
+   ================================================================ */
+.settings-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.settings-section {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+#settings-advanced {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+@media (max-width: 980px) {
+    #settings-advanced { grid-template-columns: 1fr; }
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.settings-tabs {
+    display: inline-flex;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 4px;
+    gap: 2px;
+}
+
+.settings-tab {
+    appearance: none;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    padding: 7px 14px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.settings-tab:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+}
+
+.settings-tab.active {
+    background: var(--accent-blue);
+    color: #fff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.settings-tab.active:hover {
+    background: var(--accent-blue);
+    color: #fff;
+}

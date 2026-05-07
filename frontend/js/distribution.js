@@ -82,103 +82,26 @@ async function refreshWorker() {
 }
 
 async function refreshConfig() {
-    try {
-        const c = await api('GET', '/config');
-        const cells = [
-            ['ETH RPC', c.eth_rpc_configured ? '<span class="dist-pill confirmed">configured</span>' : '<span class="dist-pill failed">missing</span>'],
-            ['KEK', c.kek_configured ? '<span class="dist-pill confirmed">configured</span>' : '<span class="dist-pill failed">missing</span>'],
-            ['Admin auth', c.admin_token_required ? '<span class="dist-pill running">enabled</span>' : '<span class="dist-pill draft">disabled</span>'],
-            ['Max gas (gwei)', fmtNum(c.max_gas_price_gwei, 2)],
-            ['Per‑wallet daily cap', c.per_wallet_daily_cap ? fmtNum(c.per_wallet_daily_cap) : 'unlimited'],
-            ['Max in‑flight', c.max_inflight],
-            ['Receipt poll', `${c.receipt_poll_seconds}s`],
-            ['Max retries', c.max_retries_per_recipient],
-        ];
-        $('configBox').innerHTML = cells.map(([k, v]) =>
-            `<div class="status-cell"><div class="status-label">${k}</div><div class="status-value small">${v}</div></div>`
-        ).join('');
-    } catch (e) {
-        $('configBox').innerHTML = `<div class="admin-error">${escapeHtml(e.message)}</div>`;
-    }
+    // Configuration is now displayed on the Settings page; no-op here.
 }
 
-// ---------- Wallets ----------
+// ---------- Wallets (read-only on this page; managed in Settings) ----------
 
 async function refreshWallets() {
-    const tbody = $('walletsTbody');
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 24px;">Loading…</td></tr>`;
     try {
-        const wallets = await api('GET', `/wallets?include_balances=true`);
+        const wallets = await api('GET', `/wallets?include_balances=false`);
         WALLETS_CACHE = wallets;
-        const kpiW = $('kpiWallets'); if (kpiW) kpiW.textContent = wallets.filter(w => w.is_active).length;
-        if (!wallets.length) {
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 24px;">No wallets yet.</td></tr>`;
-            return;
-        }
-        tbody.innerHTML = wallets.map(w => {
-            const tokens = w.token_balances
-                ? Object.entries(w.token_balances).map(([sym, bal]) => `${escapeHtml(sym)}: ${fmtNum(bal)}`).join(' · ')
-                : '—';
-            return `<tr>
-                <td><span class="addr">${escapeHtml(w.address)}</span></td>
-                <td>${escapeHtml(w.label || '')}</td>
-                <td>${w.is_active ? '<span class="dist-pill confirmed">yes</span>' : '<span class="dist-pill paused">no</span>'}</td>
-                <td class="mono">${w.eth_balance !== undefined && w.eth_balance !== null ? fmtNum(w.eth_balance) : '—'}</td>
-                <td class="mono">${tokens}</td>
-                <td class="row-actions">
-                    <button class="row-btn" data-action="toggle" data-id="${w.id}" data-active="${w.is_active}">${w.is_active ? 'Disable' : 'Enable'}</button>
-                    <button class="row-btn danger" data-action="delete" data-id="${w.id}">Delete</button>
-                </td>
-            </tr>`;
-        }).join('');
-    } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="6" class="admin-error">${escapeHtml(e.message)}</td></tr>`;
+        const kpiW = $('kpiWallets');
+        if (kpiW) kpiW.textContent = wallets.filter(w => w.is_active).length;
+    } catch (_e) {
+        WALLETS_CACHE = [];
     }
 }
 
-async function handleWalletAction(e) {
-    const btn = e.target.closest('button[data-action]');
-    if (!btn) return;
-    const id = btn.dataset.id;
-    const action = btn.dataset.action;
-    try {
-        if (action === 'toggle') {
-            const isActive = btn.dataset.active === 'true';
-            await api('PATCH', `/wallets/${id}`, { is_active: !isActive });
-        } else if (action === 'delete') {
-            if (!confirm('Delete this wallet? Encrypted key will be removed.')) return;
-            await api('DELETE', `/wallets/${id}`);
-        }
-        await refreshWallets();
-    } catch (err) {
-        alert(err.message);
-    }
-}
-
-function openWalletModal() {
-    $('walletPrivateKey').value = '';
-    $('walletLabel').value = '';
-    $('walletFormError').style.display = 'none';
-    $('walletModal').style.display = 'flex';
-}
-function closeWalletModal() { $('walletModal').style.display = 'none'; }
-
-async function submitWallet(e) {
-    e.preventDefault();
-    const err = $('walletFormError');
-    err.style.display = 'none';
-    try {
-        await api('POST', '/wallets', {
-            private_key: $('walletPrivateKey').value.trim(),
-            label: $('walletLabel').value.trim() || null,
-        });
-        closeWalletModal();
-        await refreshWallets();
-    } catch (e2) {
-        err.textContent = e2.message;
-        err.style.display = 'block';
-    }
-}
+async function handleWalletAction() { /* removed — see Settings */ }
+function openWalletModal() { /* removed */ }
+function closeWalletModal() { /* removed */ }
+async function submitWallet() { /* removed */ }
 
 // ---------- Campaigns ----------
 
@@ -428,12 +351,6 @@ async function refreshRecipients() {
 // ---------- Wire-up ----------
 
 document.addEventListener('DOMContentLoaded', () => {
-    $('adminTokenInput').value = getAdminToken();
-    $('adminTokenSave').addEventListener('click', () => {
-        setAdminToken($('adminTokenInput').value.trim());
-        alert('Admin token saved.');
-    });
-
     $('workerStartBtn').addEventListener('click', async () => {
         try { await api('POST', '/worker/start'); await refreshWorker(); }
         catch (e) { alert(e.message); }
@@ -443,11 +360,6 @@ document.addEventListener('DOMContentLoaded', () => {
         catch (e) { alert(e.message); }
     });
     $('workerRefreshBtn').addEventListener('click', refreshWorker);
-
-    $('addWalletBtn').addEventListener('click', openWalletModal);
-    $('walletCancelBtn').addEventListener('click', closeWalletModal);
-    $('walletForm').addEventListener('submit', submitWallet);
-    $('walletsTbody').addEventListener('click', handleWalletAction);
 
     $('addCampaignBtn').addEventListener('click', openCampaignModal);
     $('campCancelBtn').addEventListener('click', closeCampaignModal);
@@ -469,7 +381,6 @@ document.addEventListener('DOMContentLoaded', () => {
     $('recipNext').addEventListener('click', () => { RECIP_OFFSET += RECIP_LIMIT; refreshRecipients(); });
 
     refreshWorker();
-    refreshConfig();
     refreshWallets();
     loadTokens().then(refreshCampaigns);
 

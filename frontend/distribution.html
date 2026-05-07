@@ -24,7 +24,7 @@
             <span class="sidebar-logo-text">Wallet Explorer</span>
         </a>
         <nav class="sidebar-nav">
-            <div class="sidebar-section-label">Wallet Explorer</div>
+            <div class="sidebar-section-label">Main Menu</div>
             <a href="/" class="sidebar-nav-item">
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
@@ -38,12 +38,18 @@
                 </svg>
                 Transaction Scanner
             </a>
-            <div class="sidebar-section-label" style="margin-top: 16px;">Airdrop</div>
             <a href="/admin/distribution" class="sidebar-nav-item active">
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M3 12l18-9-9 18-2-7-7-2z"/>
                 </svg>
                 Campaigns
+            </a>
+            <a href="/admin/settings" class="sidebar-nav-item">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
+                Settings
             </a>
         </nav>
     </aside>
@@ -54,10 +60,7 @@
             <div class="header-page-title">Campaigns</div>
             <div class="header-breadcrumb"><span>Home</span><span>›</span><span>Airdrop</span><span>›</span><span>Campaigns</span></div>
         </div>
-        <div style="display:flex; gap:8px;">
-            <input type="password" id="adminTokenInput" class="wallet-input" placeholder="X-Admin-Token (if required)" style="width: 240px; font-size: 12px; padding: 8px 12px;">
-            <button id="adminTokenSave" class="btn btn-secondary" style="font-size:12px; padding:8px 14px;">Save</button>
-        </div>
+        <div></div>
     </header>
 
     <!-- ===== MAIN ===== -->
@@ -104,8 +107,8 @@
                 </div>
             </div>
 
-            <!-- CONFIG / WORKER -->
-            <div class="card admin-card">
+            <!-- WORKER -->
+            <div class="card admin-card admin-card-wide">
                 <h2 class="admin-card-title">Worker</h2>
                 <p class="admin-card-sub">Background loop that signs and broadcasts ERC‑20 transfers.</p>
                 <div id="workerBox" class="kv-grid"></div>
@@ -115,39 +118,6 @@
                     <button id="workerRefreshBtn" class="btn btn-secondary" style="font-size:12px;">Refresh</button>
                 </div>
                 <div id="workerError" class="admin-error" style="display:none;"></div>
-            </div>
-
-            <div class="card admin-card">
-                <h2 class="admin-card-title">Configuration</h2>
-                <p class="admin-card-sub">Read-only — set in .env / environment.</p>
-                <div id="configBox" class="kv-grid"></div>
-            </div>
-
-            <!-- WALLETS -->
-            <div class="card admin-card admin-card-wide">
-                <div class="admin-card-header-row">
-                    <div>
-                        <h2 class="admin-card-title">Sender Wallets</h2>
-                        <p class="admin-card-sub">Private keys are AES‑GCM encrypted with the KEK and never returned.</p>
-                    </div>
-                    <div style="display:flex; gap:8px;">
-                        <button id="addWalletBtn" class="btn btn-primary" style="font-size:12px; padding:8px 14px;">+ Add Wallet</button>
-                    </div>
-                </div>
-                <div class="table-wrapper">
-                    <table id="walletsTable">
-                        <thead>
-                            <tr>
-                                <th>Address</th><th>Label</th><th>Active</th>
-                                <th>ETH</th><th>Tokens</th>
-                                <th style="text-align:right;">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="walletsTbody">
-                            <tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 24px;">Loading…</td></tr>
-                        </tbody>
-                    </table>
-                </div>
             </div>
 
             <!-- CAMPAIGNS -->
@@ -216,31 +186,6 @@
             </div>
         </div>
     </main>
-
-    <!-- ===== ADD WALLET MODAL ===== -->
-    <div id="walletModal" class="modal-backdrop" style="display:none;">
-        <div class="modal-card">
-            <h3>Add Sender Wallet</h3>
-            <div class="banner warn">
-                The private key is encrypted at rest with AIRDROP_KEK and never returned by the API. You must paste it once now.
-            </div>
-            <form id="walletForm">
-                <div class="input-group">
-                    <label for="walletPrivateKey">Private Key (0x… 64 hex chars)</label>
-                    <input type="password" id="walletPrivateKey" class="wallet-input" required minlength="64" maxlength="68" autocomplete="off">
-                </div>
-                <div class="input-group">
-                    <label for="walletLabel">Label (optional)</label>
-                    <input type="text" id="walletLabel" class="wallet-input" maxlength="128" placeholder="treasury-1">
-                </div>
-                <div id="walletFormError" class="admin-error" style="display:none;"></div>
-                <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary" id="walletCancelBtn">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save</button>
-                </div>
-            </form>
-        </div>
-    </div>
 
     <!-- ===== NEW CAMPAIGN MODAL ===== -->
     <div id="campaignModal" class="modal-backdrop" style="display:none;">
@@ -315,6 +260,6 @@
         </div>
     </div>
 
-    <script src="/static/js/distribution.js?v=2"></script>
+    <script src="/static/js/distribution.js?v=3"></script>
 </body>
 </html>
