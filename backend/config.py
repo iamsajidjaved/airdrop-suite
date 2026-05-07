@@ -88,10 +88,17 @@ class Settings(BaseSettings):
     # transfers within a single monitor batch is treated as an exchange/router
     # and all of its rows in that batch are dropped before insert.
     quality_per_run_aggregator_drop_threshold: int = 50
+    # Symmetric sender-side drop: if one from_address sends to more than this
+    # many distinct to_addresses in a single batch, all its rows are dropped
+    # (catches faucets / batch-distribution bots within a single run).
+    quality_from_aggregator_drop_threshold: int = 50
     # Aggregate prune (post-insert) thresholds. Addresses exceeding either of
     # these in the cumulative airdrop_transactions table are deleted.
     quality_max_inbound_count: int = 1000
     quality_max_distinct_senders: int = 500
+    # Post-insert sender prune: delete all transactions whose from_address has
+    # distributed to more than this many distinct recipients across all runs.
+    quality_max_outbound_count: int = 500
     # Singleton wallets older than this many days with only one inbound tx are
     # pruned as low-engagement. Recent singletons get a chance to accumulate.
     quality_dormant_singleton_days: int = 180

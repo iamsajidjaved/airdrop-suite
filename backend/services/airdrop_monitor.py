@@ -73,10 +73,15 @@ class AirdropMonitorService:
         results: list[dict] = []
         scale = Decimal(10) ** spec.decimals
         threshold_dec = Decimal(str(threshold))
+        _ZERO_ADDR = "0x0000000000000000000000000000000000000000"
         for tx in txs:
             try:
                 amount = Decimal(tx.get("value", "0")) / scale
                 if amount < threshold_dec:
+                    continue
+                to_addr = (tx.get("to") or "").lower()
+                from_addr = (tx.get("from") or "").lower()
+                if not to_addr or to_addr == _ZERO_ADDR or not from_addr:
                     continue
                 ts = int(tx.get("timeStamp", 0))
                 results.append({
@@ -85,8 +90,8 @@ class AirdropMonitorService:
                     "block_number": int(tx.get("blockNumber", 0)),
                     "network": spec.network,
                     "token_id": spec.id,
-                    "from_address": (tx.get("from") or "").lower(),
-                    "to_address": (tx.get("to") or "").lower(),
+                    "from_address": from_addr,
+                    "to_address": to_addr,
                     "amount": amount,
                     "amount_usd": amount,  # stablecoins: 1:1
                     "transferred_at": datetime.fromtimestamp(ts, tz=timezone.utc),
@@ -102,30 +107,49 @@ class AirdropMonitorService:
         blocklist: set[str],
         known_contracts: set[str],
         aggregator_threshold: int,
+        token_contracts: set[str],
+        from_aggregator_threshold: int,
     ) -> tuple[list[dict], dict[str, int]]:
-        """Drop rows whose recipient is obviously low-quality, before insert.
+        """Drop rows whose recipient or sender is obviously low-quality, before insert.
 
         Returns (kept_rows, drop_counts). Counts are reported per reason.
         """
         if not rows:
-            return rows, {"blocklist": 0, "contract": 0, "self_tx": 0, "aggregator": 0}
+            return rows, {
+                "blocklist": 0, "from_blocklist": 0, "mint": 0,
+                "contract": 0, "self_tx": 0, "aggregator": 0, "from_aggregator": 0,
+            }
 
         aggregators = wallet_quality.in_batch_aggregator_set(rows, aggregator_threshold)
+        from_aggregators = wallet_quality.in_batch_from_aggregator_set(rows, from_aggregator_threshold)
         kept: list[dict] = []
-        counts = {"blocklist": 0, "contract": 0, "self_tx": 0, "aggregator": 0}
+        counts = {
+            "blocklist": 0, "from_blocklist": 0, "mint": 0,
+            "contract": 0, "self_tx": 0, "aggregator": 0, "from_aggregator": 0,
+        }
         for r in rows:
             to_addr = r["to_address"]
+            from_addr = r["from_address"]
             if to_addr in blocklist:
                 counts["blocklist"] += 1
+                continue
+            if from_addr in blocklist:
+                counts["from_blocklist"] += 1
+                continue
+            if from_addr in token_contracts:
+                counts["mint"] += 1
                 continue
             if to_addr in known_contracts:
                 counts["contract"] += 1
                 continue
-            if to_addr == r["from_address"]:
+            if to_addr == from_addr:
                 counts["self_tx"] += 1
                 continue
             if to_addr in aggregators:
                 counts["aggregator"] += 1
+                continue
+            if from_addr in from_aggregators:
+                counts["from_aggregator"] += 1
                 continue
             kept.append(r)
         return kept, counts
@@ -179,9 +203,12 @@ class AirdropMonitorService:
 
         quality_drop_totals: dict[str, int] = {
             "blocklist": 0,
+            "from_blocklist": 0,
+            "mint": 0,
             "contract": 0,
             "self_tx": 0,
             "aggregator": 0,
+            "from_aggregator": 0,
         }
         quality_enrich_summary: dict[str, int] = {}
         quality_prune_summary: dict[str, int] = {}
@@ -237,6 +264,11 @@ class AirdropMonitorService:
             return_exceptions=True,
         )
 
+        # Build token contract sets per network for the mint-event filter.
+        token_contracts_by_net: dict[str, set[str]] = {}
+        for spec in specs:
+            token_contracts_by_net.setdefault(spec.network, set()).add(spec.contract.lower())
+
         # 3) Persist serially in one transaction
         async with async_session_factory() as session:
             # Load Gate A inputs once per pass (per network as encountered).
@@ -281,6 +313,8 @@ class AirdropMonitorService:
                         blocklist=blocklist_by_net.get(spec.network, set()),
                         known_contracts=contracts_by_net.get(spec.network, set()),
                         aggregator_threshold=qs.quality_per_run_aggregator_drop_threshold,
+                        token_contracts=token_contracts_by_net.get(spec.network, set()),
+                        from_aggregator_threshold=qs.quality_from_aggregator_drop_threshold,
                     )
                     for k, v in drop_counts.items():
                         quality_drop_totals[k] += v
@@ -361,10 +395,14 @@ class AirdropMonitorService:
                         cross_pruned = await wallet_quality.prune_cross_token_aggregators(
                             session, net, qs.quality_cross_token_aggregator_threshold
                         )
+                        sender_pruned = await wallet_quality.prune_high_frequency_senders(
+                            session, net, qs.quality_max_outbound_count
+                        )
                         prune["contract"] = contract_pruned
                         prune["cross_token"] = cross_pruned
+                        prune["high_freq_sender"] = sender_pruned
                         prune["rows_deleted"] = (
-                            prune.get("rows_deleted", 0) + contract_pruned + cross_pruned
+                            prune.get("rows_deleted", 0) + contract_pruned + cross_pruned + sender_pruned
                         )
                         for k, v in prune.items():
                             quality_prune_summary[k] = quality_prune_summary.get(k, 0) + v

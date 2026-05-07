@@ -45,8 +45,10 @@ async def load_quality_settings(session: AsyncSession) -> "QualityFilterSettings
         "quality_contract_check_enabled",
         "quality_contract_check_concurrency",
         "quality_per_run_aggregator_drop_threshold",
+        "quality_from_aggregator_drop_threshold",
         "quality_max_inbound_count",
         "quality_max_distinct_senders",
+        "quality_max_outbound_count",
         "quality_dormant_singleton_days",
         "quality_cross_token_aggregator_threshold",
     ]
@@ -75,8 +77,10 @@ async def load_quality_settings(session: AsyncSession) -> "QualityFilterSettings
         quality_contract_check_enabled=_bool("quality_contract_check_enabled", settings.quality_contract_check_enabled),
         quality_contract_check_concurrency=_int("quality_contract_check_concurrency", settings.quality_contract_check_concurrency),
         quality_per_run_aggregator_drop_threshold=_int("quality_per_run_aggregator_drop_threshold", settings.quality_per_run_aggregator_drop_threshold),
+        quality_from_aggregator_drop_threshold=_int("quality_from_aggregator_drop_threshold", settings.quality_from_aggregator_drop_threshold),
         quality_max_inbound_count=_int("quality_max_inbound_count", settings.quality_max_inbound_count),
         quality_max_distinct_senders=_int("quality_max_distinct_senders", settings.quality_max_distinct_senders),
+        quality_max_outbound_count=_int("quality_max_outbound_count", settings.quality_max_outbound_count),
         quality_dormant_singleton_days=_int("quality_dormant_singleton_days", settings.quality_dormant_singleton_days),
         quality_cross_token_aggregator_threshold=_int("quality_cross_token_aggregator_threshold", 0),
     )
@@ -118,6 +122,19 @@ def in_batch_aggregator_set(
         return set()
     counter: Counter[str] = Counter(r["to_address"] for r in rows)
     return {addr for addr, c in counter.items() if c > threshold}
+
+
+def in_batch_from_aggregator_set(rows: list[dict], threshold: int) -> set[str]:
+    """Return from_addresses that sent to > threshold distinct to_addresses in this batch.
+
+    Catches faucets and bot distributors: one sender → many distinct recipients.
+    """
+    if threshold <= 0:
+        return set()
+    from_to: dict[str, set[str]] = {}
+    for r in rows:
+        from_to.setdefault(r["from_address"], set()).add(r["to_address"])
+    return {fa for fa, tas in from_to.items() if len(tas) > threshold}
 
 
 # ---------- Gate B: contract enrichment ----------
@@ -330,6 +347,37 @@ async def prune_cross_token_aggregators(
         """
     )
     res = await session.execute(sql, {"network": network, "threshold": threshold})
+    await session.commit()
+    return res.rowcount or 0
+
+
+async def prune_high_frequency_senders(
+    session: AsyncSession,
+    network: str,
+    max_distinct_recipients: int,
+) -> int:
+    """Delete transactions whose from_address sent to too many distinct recipients.
+
+    Catches faucets and batch-distribution bots that operate across multiple runs.
+    """
+    if max_distinct_recipients <= 0:
+        return 0
+    sql = text(
+        """
+        WITH bad AS (
+            SELECT from_address
+            FROM airdrop_transactions
+            WHERE network = :network
+            GROUP BY from_address
+            HAVING COUNT(DISTINCT to_address) > :threshold
+        )
+        DELETE FROM airdrop_transactions t
+        USING bad
+        WHERE t.network = :network
+          AND t.from_address = bad.from_address
+        """
+    )
+    res = await session.execute(sql, {"network": network, "threshold": max_distinct_recipients})
     await session.commit()
     return res.rowcount or 0
 

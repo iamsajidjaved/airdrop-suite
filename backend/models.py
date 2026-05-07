@@ -156,8 +156,10 @@ class QualityFilterSettings(BaseModel):
     quality_contract_check_enabled: bool = True
     quality_contract_check_concurrency: int = Field(4, ge=1, le=32)
     quality_per_run_aggregator_drop_threshold: int = Field(50, ge=0)
+    quality_from_aggregator_drop_threshold: int = Field(50, ge=0)
     quality_max_inbound_count: int = Field(1000, ge=1)
     quality_max_distinct_senders: int = Field(500, ge=1)
+    quality_max_outbound_count: int = Field(500, ge=1)
     quality_dormant_singleton_days: int = Field(180, ge=1)
     quality_cross_token_aggregator_threshold: int = Field(0, ge=0)
 
@@ -167,8 +169,10 @@ class QualityFilterUpdate(BaseModel):
     quality_contract_check_enabled: Optional[bool] = None
     quality_contract_check_concurrency: Optional[int] = Field(None, ge=1, le=32)
     quality_per_run_aggregator_drop_threshold: Optional[int] = Field(None, ge=0)
+    quality_from_aggregator_drop_threshold: Optional[int] = Field(None, ge=0)
     quality_max_inbound_count: Optional[int] = Field(None, ge=1)
     quality_max_distinct_senders: Optional[int] = Field(None, ge=1)
+    quality_max_outbound_count: Optional[int] = Field(None, ge=1)
     quality_dormant_singleton_days: Optional[int] = Field(None, ge=1)
     quality_cross_token_aggregator_threshold: Optional[int] = Field(None, ge=0)
 
