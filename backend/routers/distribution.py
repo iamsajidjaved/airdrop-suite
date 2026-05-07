@@ -1,6 +1,7 @@
 """Distribution API endpoints (Phase 2)."""
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Optional
 
@@ -59,31 +60,58 @@ async def list_wallets(
             (await session.scalars(select(AirdropToken).where(AirdropToken.is_active.is_(True)))).all()
         )
 
-    for w in wallets:
-        item = DistributionWalletOut.model_validate(w)
-        if include_balances:
-            try:
-                item.eth_balance = await get_eth_balance(w.address)
-                token_balances: dict[str, float] = {}
-                for t in token_rows:
-                    try:
-                        bal = await get_token_balance(t.contract_address, w.address, t.decimals)
-                        token_balances[t.symbol] = bal
-                    except Exception as e:  # noqa: BLE001
-                        logger.warning(
-                            "token balance failed for %s/%s: %s: %r",
-                            w.address, t.symbol, type(e).__name__, e,
-                        )
-                item.token_balances = token_balances  # type: ignore[assignment]
-            except Web3Unavailable as e:
-                raise HTTPException(status_code=400, detail=str(e))
-            except Exception as e:  # noqa: BLE001
-                logger.warning(
-                    "eth balance failed for %s: %s: %r",
-                    w.address, type(e).__name__, e,
-                )
-        out.append(item)
-    return out
+    # Build the base response first; balances are decorated below in parallel
+    # so a slow / unavailable RPC can never block listing wallets.
+    items = [DistributionWalletOut.model_validate(w) for w in wallets]
+
+    if include_balances and items:
+        # If RPC is unconfigured, return wallets with null balances rather than
+        # failing the whole request — the table should still render.
+        try:
+            from backend.services.web3_client import get_web3
+            get_web3()
+            rpc_available = True
+        except Web3Unavailable:
+            rpc_available = False
+
+        if rpc_available:
+            # Public Sepolia endpoints (rpc2.sepolia.org etc.) routinely take
+            # 5–15s per call. Keep this generous so balances actually render;
+            # the calls run in parallel so total page time is still bounded.
+            PER_CALL_TIMEOUT = 20.0  # seconds
+
+            async def _safe_eth(addr: str):
+                try:
+                    return await asyncio.wait_for(get_eth_balance(addr), timeout=PER_CALL_TIMEOUT)
+                except Exception as e:  # noqa: BLE001
+                    logger.warning("eth balance failed for %s: %s: %r", addr, type(e).__name__, e)
+                    return None
+
+            async def _safe_token(token: AirdropToken, addr: str):
+                try:
+                    return await asyncio.wait_for(
+                        get_token_balance(token.contract_address, addr, token.decimals),
+                        timeout=PER_CALL_TIMEOUT,
+                    )
+                except Exception as e:  # noqa: BLE001
+                    logger.warning(
+                        "token balance failed for %s/%s: %s: %r",
+                        addr, token.symbol, type(e).__name__, e,
+                    )
+                    return None
+
+            async def _decorate(idx: int, w: DistributionWallet):
+                eth_task = _safe_eth(w.address)
+                token_tasks = [_safe_token(t, w.address) for t in token_rows]
+                eth_res, *token_res = await asyncio.gather(eth_task, *token_tasks)
+                items[idx].eth_balance = eth_res
+                items[idx].token_balances = {
+                    t.symbol: bal for t, bal in zip(token_rows, token_res) if bal is not None
+                }
+
+            await asyncio.gather(*[_decorate(i, w) for i, w in enumerate(wallets)])
+
+    return items
 
 
 @router.post(
