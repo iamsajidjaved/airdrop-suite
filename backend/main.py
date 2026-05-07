@@ -9,7 +9,6 @@ from fastapi.responses import FileResponse
 from pathlib import Path
 from backend.routers import transactions, airdrop, distribution
 from backend.config import settings
-from backend.services.airdrop_scheduler import scheduler as airdrop_scheduler
 from backend.services.distribution_worker import worker as distribution_worker
 
 # Configure logging
@@ -22,16 +21,15 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: launch the airdrop monitor background loop (if enabled).
-    airdrop_scheduler.start()
+    # The airdrop transaction scanner runs ONLY when the operator clicks
+    # "Run Scan" in the admin UI (POST /api/airdrop/monitor/run). No
+    # background loop, cron, or scheduled task is started on boot.
     # Distribution worker is opt-in (default off). Start only when explicitly enabled.
     if settings.distribution_worker_enabled:
         distribution_worker.start()
     try:
         yield
     finally:
-        # Shutdown: cleanly cancel and await both loops.
-        await airdrop_scheduler.stop()
         await distribution_worker.stop()
 
 

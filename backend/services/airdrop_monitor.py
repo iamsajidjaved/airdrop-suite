@@ -15,7 +15,7 @@ from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.config import settings
+from backend.config import chain_id_for, settings
 from backend.db import async_session_factory
 from backend.db_models import AirdropConfig, AirdropToken, AirdropTransaction, WalletContractCache
 from backend.models import AirdropStatusResponse, MonitorRunResult
@@ -131,7 +131,7 @@ class AirdropMonitorService:
         return kept, counts
 
     async def _fetch_all_pages(
-        self, contract: str, start_block: int
+        self, contract: str, start_block: int, chain_id: int
     ) -> tuple[list[dict], int]:
         """Fetch up to MAX_PAGES_PER_RUN pages. Returns (txs, max_block_seen)."""
         all_txs: list[dict] = []
@@ -144,6 +144,7 @@ class AirdropMonitorService:
                     start_block=start_block,
                     page=page,
                     offset=self._page_size,
+                    chain_id=chain_id,
                 )
             except Exception as e:
                 logger.error(f"Error fetching page {page} for {contract}: {e}")
@@ -166,7 +167,9 @@ class AirdropMonitorService:
         return all_txs, max_block
 
     async def run_monitor(
-        self, start_block_override: Optional[int] = None
+        self,
+        start_block_override: Optional[int] = None,
+        network: Optional[str] = None,
     ) -> MonitorRunResult:
         now_str = datetime.now(tz=timezone.utc).isoformat()
         errors: list[str] = []
@@ -187,6 +190,9 @@ class AirdropMonitorService:
         # 1) Load config & token specs
         async with async_session_factory() as session:
             tokens = await self._load_active_tokens(session)
+            if network:
+                net = network.strip().lower()
+                tokens = [t for t in tokens if (t.network or "").lower() == net]
             threshold = await self._load_threshold(session)
 
             if not tokens:
@@ -217,9 +223,16 @@ class AirdropMonitorService:
                 for t in tokens
             ]
 
-        # 2) Fetch concurrently (no DB session held)
+        # 2) Fetch concurrently (no DB session held). Each token uses the
+        # Etherscan v2 chain id derived from its network column, so mainnet
+        # and Sepolia tokens can be scanned in the same pass.
         results = await asyncio.gather(
-            *(self._fetch_all_pages(spec.contract, spec.start_block) for spec in specs),
+            *(
+                self._fetch_all_pages(
+                    spec.contract, spec.start_block, chain_id_for(spec.network)
+                )
+                for spec in specs
+            ),
             return_exceptions=True,
         )
 

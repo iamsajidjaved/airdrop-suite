@@ -11,6 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.auth import require_admin
+from backend.config import NETWORKS
 from backend.db import get_session
 from backend.db_models import (
     AirdropConfig,
@@ -32,7 +33,6 @@ from backend.models import (
 )
 from backend.services import wallet_quality
 from backend.services.airdrop_monitor import AirdropMonitorService
-from backend.services.airdrop_scheduler import scheduler as airdrop_scheduler
 
 logger = logging.getLogger(__name__)
 
@@ -49,11 +49,29 @@ async def run_monitor(
     start_block_override: Optional[int] = Query(
         None,
         description="Override start block for this run. Token state is NOT updated when set.",
-    )
+    ),
+    network: Optional[str] = Query(
+        None,
+        description="Restrict the run to tokens on this network (e.g. 'ethereum', 'sepolia'). Default: all active tokens.",
+    ),
 ):
-    """Trigger a monitoring pass for all active tokens."""
-    logger.info(f"Airdrop monitor run triggered (start_block_override={start_block_override})")
-    return await monitor_service.run_monitor(start_block_override=start_block_override)
+    """Trigger a manual monitoring pass. The scanner runs ONLY when invoked here."""
+    logger.info(
+        "Airdrop monitor run triggered (start_block_override=%s, network=%s)",
+        start_block_override, network,
+    )
+    return await monitor_service.run_monitor(
+        start_block_override=start_block_override, network=network
+    )
+
+
+@router.get("/networks")
+async def list_networks():
+    """Return the supported networks (used to populate UI selectors)."""
+    return [
+        {"key": k, "label": v["label"], "chain_id": v["chain_id"], "explorer": v["explorer"]}
+        for k, v in NETWORKS.items()
+    ]
 
 
 @router.get("/status", response_model=AirdropStatusResponse)
@@ -61,52 +79,12 @@ async def get_status():
     return await monitor_service.get_status()
 
 
-# ---------------- Scheduler ----------------
-
-@router.get("/scheduler")
-async def get_scheduler_state():
-    """Return current background scheduler state (running, last run, errors, ETA)."""
-    s = airdrop_scheduler.state
-    return {
-        "enabled": s.enabled,
-        "running": s.running,
-        "interval_seconds": s.interval_seconds,
-        "started_at": s.started_at,
-        "last_run_started_at": s.last_run_started_at,
-        "last_run_finished_at": s.last_run_finished_at,
-        "last_run_duration_seconds": s.last_run_duration_seconds,
-        "last_run_inserted": s.last_run_inserted,
-        "last_run_errors": s.last_run_errors,
-        "last_error": s.last_error,
-        "next_run_eta": s.next_run_eta,
-        "total_runs": s.total_runs,
-        "total_inserted": s.total_inserted,
-    }
-
-
-@router.post("/scheduler/start")
-async def start_scheduler():
-    airdrop_scheduler.start()
-    return {"ok": True, "running": airdrop_scheduler.state.running}
-
-
-@router.post("/scheduler/stop")
-async def stop_scheduler():
-    await airdrop_scheduler.stop()
-    return {"ok": True, "running": airdrop_scheduler.state.running}
-
-
-@router.post("/scheduler/trigger", response_model=MonitorRunResult)
-async def trigger_scheduler_now():
-    """Run a single monitor pass immediately, off the scheduler cadence."""
-    return await monitor_service.run_monitor()
-
-
 # ---------------- Transactions ----------------
 
 @router.get("/transactions", response_model=AirdropTransactionListResponse)
 async def list_transactions(
     token: Optional[str] = Query(None, description="Filter by token symbol, e.g. USDT"),
+    network: Optional[str] = Query(None, description="Filter by network (ethereum, sepolia, ...)"),
     from_address: Optional[str] = Query(None),
     to_address: Optional[str] = Query(None),
     min_amount: Optional[float] = Query(None, ge=0),
@@ -125,6 +103,9 @@ async def list_transactions(
         if token_id is None:
             return AirdropTransactionListResponse(total=0, limit=limit, offset=offset, items=[])
         conditions.append(AirdropTransaction.token_id == token_id)
+
+    if network:
+        conditions.append(AirdropTransaction.network == network.strip().lower())
 
     if from_address:
         conditions.append(AirdropTransaction.from_address == from_address.strip().lower())

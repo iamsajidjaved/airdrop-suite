@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Transaction Scanner — Wallet Explorer</title>
-    <link rel="stylesheet" href="/static/css/styles.css?v=9">
-    <link rel="stylesheet" href="/static/css/admin.css?v=3">
+    <link rel="stylesheet" href="/static/css/styles.css?v=10">
+    <link rel="stylesheet" href="/static/css/admin.css?v=4">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -25,7 +25,7 @@
         </a>
 
         <nav class="sidebar-nav">
-            <div class="sidebar-section-label">Wallet Explorer</div>
+            <div class="sidebar-section-label">Main</div>
             <a href="/" class="sidebar-nav-item">
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="3" width="7" height="7"/>
@@ -33,7 +33,7 @@
                     <rect x="14" y="14" width="7" height="7"/>
                     <rect x="3" y="14" width="7" height="7"/>
                 </svg>
-                Wallet Explorer
+                Wallet Lookup
             </a>
             <a href="/admin/airdrop" class="sidebar-nav-item active">
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -42,7 +42,6 @@
                 </svg>
                 Transaction Scanner
             </a>
-            <div class="sidebar-section-label" style="margin-top: 16px;">Airdrop</div>
             <a href="/admin/distribution" class="sidebar-nav-item">
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M3 12l18-9-9 18-2-7-7-2z"/>
@@ -59,13 +58,20 @@
             <div class="header-breadcrumb">
                 <span>Home</span>
                 <span>›</span>
-                <span>Wallet Explorer</span>
-                <span>›</span>
                 <span>Transaction Scanner</span>
             </div>
         </div>
-        <div>
-            <button id="runMonitorBtn" class="btn btn-primary" style="font-size: 12px; padding: 8px 16px;">Run Monitor Now</button>
+        <div class="header-actions">
+            <div class="network-switch" title="Switch active blockchain network">
+                <span class="network-switch-dot" id="networkDot"></span>
+                <select id="networkSelect" class="network-select" aria-label="Active network">
+                    <option value="">Loading…</option>
+                </select>
+            </div>
+            <button id="runMonitorBtn" class="btn btn-primary btn-sm">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                Run Scan
+            </button>
         </div>
     </header>
 
@@ -82,13 +88,6 @@
                         <div class="kpi-value" id="kpiTotalTransfers">—</div>
                     </div>
                 </div>
-                <div class="kpi-tile kpi-green">
-                    <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg></div>
-                    <div class="kpi-body">
-                        <div class="kpi-label">Last Run (UTC)</div>
-                        <div class="kpi-value kpi-value-sm" id="kpiLastRun">—</div>
-                    </div>
-                </div>
                 <div class="kpi-tile kpi-violet">
                     <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v6m0 8v6M2 12h6m8 0h6"/><circle cx="12" cy="12" r="3"/></svg></div>
                     <div class="kpi-body">
@@ -103,32 +102,40 @@
                         <div class="kpi-value" id="kpiThreshold">—</div>
                     </div>
                 </div>
+                <div class="kpi-tile kpi-green">
+                    <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg></div>
+                    <div class="kpi-body">
+                        <div class="kpi-label">Last Scan (UTC)</div>
+                        <div class="kpi-value kpi-value-sm" id="kpiLastRun">—</div>
+                    </div>
+                </div>
             </div>
 
             <!-- THRESHOLD CARD -->
             <div class="card admin-card">
                 <h2 class="admin-card-title">Minimum Transfer Threshold</h2>
-                <p class="admin-card-sub">Transfers below this USD value are ignored by the monitor.</p>
+                <p class="admin-card-sub">Transfers below this USD value are ignored by the scanner. Stored in database.</p>
                 <form id="thresholdForm" class="threshold-form">
                     <div class="input-group">
                         <label for="thresholdInput">Minimum USD</label>
                         <input type="number" id="thresholdInput" class="wallet-input" min="0" step="1" placeholder="500">
                     </div>
-                    <button type="submit" class="btn btn-primary">Save Threshold</button>
+                    <button type="submit" class="btn btn-primary btn-sm">Save</button>
                     <span id="thresholdStatus" class="admin-status"></span>
                 </form>
             </div>
 
             <!-- STATUS CARD -->
             <div class="card admin-card">
-                <h2 class="admin-card-title">Monitor Status</h2>
+                <h2 class="admin-card-title">Scanner Status</h2>
+                <p class="admin-card-sub">Per-token resume points. The scanner runs only when you click <strong>Run Scan</strong>.</p>
                 <div id="statusBox" class="status-grid">
                     <div class="status-cell">
                         <div class="status-label">Total Transfers Stored</div>
                         <div class="status-value" id="statTotal">—</div>
                     </div>
                     <div class="status-cell">
-                        <div class="status-label">Last Run</div>
+                        <div class="status-label">Last Scan</div>
                         <div class="status-value" id="statLastRun">—</div>
                     </div>
                     <div class="status-cell" style="grid-column: 1 / -1;">
@@ -143,9 +150,9 @@
                 <div class="admin-card-header-row">
                     <div>
                         <h2 class="admin-card-title">Supported Tokens</h2>
-                        <p class="admin-card-sub">Tokens scanned by the airdrop monitor.</p>
+                        <p class="admin-card-sub">Tokens scanned on the active network. Add, edit, enable, disable, delete — all stored in DB.</p>
                     </div>
-                    <button id="addTokenBtn" class="btn btn-primary" style="font-size: 12px; padding: 8px 14px;">+ Add Token</button>
+                    <button id="addTokenBtn" class="btn btn-primary btn-sm">+ Add Token</button>
                 </div>
 
                 <div class="table-wrapper">
@@ -156,7 +163,7 @@
                                 <th>Contract</th>
                                 <th>Decimals</th>
                                 <th>Network</th>
-                                <th>Active</th>
+                                <th>Status</th>
                                 <th>Last Block</th>
                                 <th style="text-align:right;">Actions</th>
                             </tr>
@@ -173,14 +180,14 @@
             <div class="card admin-card admin-card-wide">
                 <div class="admin-card-header-row">
                     <div>
-                        <h2 class="admin-card-title">Recent Qualifying Transactions</h2>
-                        <p class="admin-card-sub">Transfers ≥ threshold for active tokens.</p>
+                        <h2 class="admin-card-title">Qualifying Transactions</h2>
+                        <p class="admin-card-sub">Transfers ≥ threshold captured on the active network.</p>
                     </div>
                     <div class="tx-filter-row">
-                        <select id="txTokenFilter" class="wallet-input" style="min-width: 140px;">
+                        <select id="txTokenFilter" class="wallet-input">
                             <option value="">All tokens</option>
                         </select>
-                        <button id="txRefreshBtn" class="btn btn-secondary" style="font-size: 12px; padding: 8px 14px;">Refresh</button>
+                        <button id="txRefreshBtn" class="btn btn-secondary btn-sm">Refresh</button>
                     </div>
                 </div>
 
@@ -203,9 +210,9 @@
                 </div>
 
                 <div class="pagination-row">
-                    <button id="txPrev" class="btn btn-secondary" style="font-size: 12px;">Prev</button>
-                    <span id="txPageInfo" style="color: var(--text-secondary); font-size: 12px;"></span>
-                    <button id="txNext" class="btn btn-secondary" style="font-size: 12px;">Next</button>
+                    <button id="txPrev" class="btn btn-secondary btn-sm">‹ Prev</button>
+                    <span id="txPageInfo" class="page-info"></span>
+                    <button id="txNext" class="btn btn-secondary btn-sm">Next ›</button>
                 </div>
             </div>
 
@@ -218,35 +225,37 @@
             <h3 id="tokenModalTitle">Add Token</h3>
             <form id="tokenForm">
                 <input type="hidden" id="tokenId">
-                <div class="input-group">
-                    <label for="tokenSymbol">Symbol</label>
-                    <input type="text" id="tokenSymbol" class="wallet-input" placeholder="USDT" required maxlength="32">
+                <div class="form-row">
+                    <div class="input-group">
+                        <label for="tokenSymbol">Symbol</label>
+                        <input type="text" id="tokenSymbol" class="wallet-input" placeholder="USDT" required maxlength="32">
+                    </div>
+                    <div class="input-group">
+                        <label for="tokenDecimals">Decimals</label>
+                        <input type="number" id="tokenDecimals" class="wallet-input" placeholder="6" min="0" max="36" required>
+                    </div>
                 </div>
                 <div class="input-group">
                     <label for="tokenContract">Contract Address</label>
                     <input type="text" id="tokenContract" class="wallet-input" placeholder="0x..." required>
                 </div>
                 <div class="input-group">
-                    <label for="tokenDecimals">Decimals</label>
-                    <input type="number" id="tokenDecimals" class="wallet-input" placeholder="6" min="0" max="36" required>
-                </div>
-                <div class="input-group">
                     <label for="tokenNetwork">Network</label>
-                    <input type="text" id="tokenNetwork" class="wallet-input" value="ethereum" required>
+                    <select id="tokenNetwork" class="wallet-input" required></select>
                 </div>
-                <div class="input-group" style="flex-direction: row; align-items: center; gap: 8px;">
+                <div class="toggle-row">
                     <input type="checkbox" id="tokenActive" checked>
-                    <label for="tokenActive" style="margin: 0;">Active</label>
+                    <label for="tokenActive">Active &mdash; included in the next scan</label>
                 </div>
                 <div id="tokenFormError" class="admin-error" style="display:none;"></div>
                 <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary" id="tokenCancelBtn">Cancel</button>
-                    <button type="submit" class="btn btn-primary" id="tokenSaveBtn">Save</button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="tokenCancelBtn">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm" id="tokenSaveBtn">Save</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <script src="/static/js/admin.js?v=2"></script>
+    <script src="/static/js/admin.js?v=3"></script>
 </body>
 </html>

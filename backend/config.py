@@ -38,15 +38,9 @@ class Settings(BaseSettings):
     # Token list and threshold live in the database (airdrop_tokens / airdrop_config tables).
     airdrop_page_size: int = 1000
 
-    # Background scheduler: when enabled, the app spawns an asyncio task that
-    # runs the monitor every `airdrop_scheduler_interval_seconds`. Because each
-    # run resumes from `last_scanned_block`, no transactions are missed even if
-    # the interval is large or the process restarts.
-    airdrop_scheduler_enabled: bool = True
-    airdrop_scheduler_interval_seconds: int = 60
-    # Wait this many seconds after app startup before the first run, so the API
-    # is responsive immediately and the first scan doesn't block boot.
-    airdrop_scheduler_initial_delay_seconds: int = 5
+    # Background scheduler is intentionally disabled. The transaction scanner
+    # runs ONLY when the operator clicks "Run Scan" in the admin UI (or hits
+    # POST /api/airdrop/monitor/run). No cron, no auto-loop.
 
     # Bootstrap defaults used by the initial Alembic seed migration only.
     airdrop_seed_tokens: str = (
@@ -111,3 +105,21 @@ class Settings(BaseSettings):
 
 # Global settings instance
 settings = Settings()
+
+
+# ----- Network registry -----
+# Single source of truth that maps the per-token `network` string (stored in
+# `airdrop_tokens.network`) to the Etherscan v2 chain id used at scan time and
+# to the human label shown in the UI. Add new networks here.
+NETWORKS: dict[str, dict] = {
+    "ethereum": {"chain_id": 1, "label": "Ethereum Mainnet", "explorer": "https://etherscan.io"},
+    "sepolia":  {"chain_id": 11155111, "label": "Sepolia Testnet", "explorer": "https://sepolia.etherscan.io"},
+}
+
+
+def chain_id_for(network: str) -> int:
+    """Return the Etherscan v2 chain id for a token network. Falls back to the
+    configured ``etherscan_chain_id`` for unknown networks (forward-compat)."""
+    info = NETWORKS.get((network or "").lower())
+    return int(info["chain_id"]) if info else int(settings.etherscan_chain_id)
+

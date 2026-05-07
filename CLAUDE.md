@@ -24,7 +24,6 @@ The two share the FastAPI app and DB connection pool but are otherwise independe
 wallet-explorer/
 ├── CLAUDE.md                  this file
 ├── README.md                  user-facing setup + feature overview
-├── DEPLOYMENT.md              Render.com deployment guide (still current)
 ├── pyproject.toml             uv project + deps
 ├── alembic.ini                Alembic config (script_location = backend/migrations)
 ├── start.ps1 / start.bat      one-shot dev launchers (uv sync + uvicorn --reload)
@@ -93,6 +92,5 @@ Required only for token distribution (Phase 2; see `.claude/specs/distribution.m
 | DB schema + migration workflow | `.claude/specs/database.md` |
 | How the airdrop scanner works | `.claude/specs/airdrop-monitor.md` |
 | How token distribution works (Phase 2) | `.claude/specs/distribution.md` |
-| Production deployment | `DEPLOYMENT.md` |
 
 When in doubt, the code is small enough to read directly — `backend/` is ~10 files.

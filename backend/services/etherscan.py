@@ -118,13 +118,19 @@ class EtherscanService:
         start_block: int = 0,
         end_block: int = 99999999,
         page: int = 1,
-        offset: int = 1000
+        offset: int = 1000,
+        chain_id: Optional[int] = None,
     ) -> list[dict]:
-        """Fetch all ERC-20 transfers for a token contract (no wallet filter)."""
+        """Fetch all ERC-20 transfers for a token contract (no wallet filter).
+
+        ``chain_id`` overrides the global ``settings.etherscan_chain_id`` so the
+        monitor can scan tokens on different networks (mainnet vs Sepolia) in a
+        single pass, picking the right Etherscan v2 chain per token.
+        """
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
                 params = {
-                    "chainid": str(settings.etherscan_chain_id),
+                    "chainid": str(chain_id if chain_id is not None else settings.etherscan_chain_id),
                     "module": "account",
                     "action": "tokentx",
                     "contractaddress": contract_address,

@@ -34,7 +34,7 @@ JS files map 1:1 to pages. Pages reference assets at `/static/...` (mount define
 
 ## API base
 
-All `fetch` calls use relative paths (`/api/...`). The frontend and backend are served from the same origin in dev and prod, so no CORS concerns at runtime (the `*` CORS policy in `backend/main.py:30` is permissive for local debugging — see DEPLOYMENT.md before tightening it).
+All `fetch` calls use relative paths (`/api/...`). The frontend and backend are served from the same origin in dev and prod, so no CORS concerns at runtime (the `*` CORS policy in `backend/main.py` is permissive for local debugging — tighten it before deploying publicly).
 
 ## Editing
 

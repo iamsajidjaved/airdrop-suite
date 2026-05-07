@@ -351,31 +351,35 @@ input[type="date"].wallet-input {
     align-items: center;
     justify-content: center;
     gap: 6px;
-    padding: 9px 18px;
+    padding: 8px 16px;
     border: none;
     border-radius: 8px;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.15s, opacity 0.15s, border-color 0.15s;
+    transition: background 0.15s, opacity 0.15s, border-color 0.15s, transform 0.1s;
     text-decoration: none;
     white-space: nowrap;
+    line-height: 1;
 }
 
+.btn:hover:not(:disabled) { transform: translateY(-1px); }
+
 .btn-primary {
-    background: var(--accent-blue);
+    background: linear-gradient(135deg, #3699ff 0%, #1e6fd9 100%);
     color: #fff;
-    width: 100%;
-    padding: 11px 18px;
+    box-shadow: 0 4px 14px -6px rgba(54,153,255,0.55);
 }
 
 .btn-primary:hover:not(:disabled) {
-    background: #187de4;
+    background: linear-gradient(135deg, #4ea7ff 0%, #2879df 100%);
+    box-shadow: 0 6px 18px -6px rgba(54,153,255,0.7);
 }
 
 .btn-primary:disabled {
     opacity: 0.45;
     cursor: not-allowed;
+    box-shadow: none;
 }
 
 .btn-secondary {
@@ -388,6 +392,13 @@ input[type="date"].wallet-input {
     background: #363651;
     border-color: #3b3b58;
 }
+
+.btn-sm   { padding: 6px 12px; font-size: 11px; border-radius: 6px; }
+.btn-block { width: 100%; padding: 11px 18px; font-size: 13px; }
+.btn-success { background: linear-gradient(135deg, #50cd89 0%, #16a463 100%); color: #fff; box-shadow: 0 4px 14px -6px rgba(80,205,137,0.55); }
+.btn-success:hover:not(:disabled) { background: linear-gradient(135deg, #5fd996 0%, #1cb56e 100%); }
+.btn-danger  { background: linear-gradient(135deg, #f1416c 0%, #c11d4d 100%); color: #fff; box-shadow: 0 4px 14px -6px rgba(241,65,108,0.55); }
+.btn-danger:hover:not(:disabled)  { background: linear-gradient(135deg, #f55585 0%, #d4225a 100%); }
 
 /* Loading spinner (injected via innerHTML by wallet.js) */
 .spinner {
