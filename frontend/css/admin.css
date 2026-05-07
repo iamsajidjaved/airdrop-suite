@@ -40,18 +40,6 @@
     margin-bottom: 0;
 }
 
-.threshold-form {
-    display: flex;
-    align-items: flex-end;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-
-.threshold-form .input-group {
-    flex: 1 1 200px;
-    margin-bottom: 0;
-}
-
 .admin-status {
     color: var(--accent-green);
     font-size: 12px;
@@ -453,7 +441,7 @@
 }
 
 /* ============================================================
-   v4 — modern polish: header network switch, network pills,
+   v4 ï¿½ modern polish: header network switch, network pills,
    tighter forms, page info chip, block chips
    ============================================================ */
 
@@ -578,9 +566,6 @@
 .tx-filter-row { gap: 10px; }
 .tx-filter-row .wallet-input { padding: 7px 10px; font-size: 12px; height: auto; min-width: 150px; }
 
-/* Threshold input compact */
-.threshold-form .wallet-input { padding: 8px 12px; font-size: 12px; }
-
 
 /* ================================================================
    SETTINGS PAGE â€” tabs + section layout
@@ -607,20 +592,20 @@
     #settings-advanced { grid-template-columns: 1fr; }
 }
 
-.header-actions {
+/* ---- In-page tab bar (replaces header-mounted tabs) ---- */
+.settings-tabs-bar {
     display: flex;
     align-items: center;
-    gap: 12px;
-}
-
-.settings-tabs {
-    display: inline-flex;
-    background: var(--bg-input);
+    gap: 4px;
+    padding: 6px;
+    background: var(--bg-card);
     border: 1px solid var(--border-color);
-    border-radius: 10px;
-    padding: 4px;
-    gap: 2px;
+    border-radius: 12px;
+    box-shadow: 0 4px 18px -12px rgba(0, 0, 0, 0.6);
+    overflow-x: auto;
+    scrollbar-width: none;
 }
+.settings-tabs-bar::-webkit-scrollbar { display: none; }
 
 .settings-tab {
     appearance: none;
@@ -628,13 +613,24 @@
     border: none;
     color: var(--text-secondary);
     font-family: inherit;
-    font-size: 12px;
+    font-size: 12.5px;
     font-weight: 600;
-    letter-spacing: 0.02em;
-    padding: 7px 14px;
-    border-radius: 7px;
+    letter-spacing: 0.01em;
+    padding: 9px 16px;
+    border-radius: 8px;
     cursor: pointer;
     transition: background 0.15s, color 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.settings-tab .tab-ico {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    opacity: 0.85;
 }
 
 .settings-tab:hover {
@@ -645,10 +641,109 @@
 .settings-tab.active {
     background: var(--accent-blue);
     color: #fff;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 4px 14px -6px rgba(54, 153, 255, 0.55);
 }
+
+.settings-tab.active .tab-ico { opacity: 1; }
 
 .settings-tab.active:hover {
     background: var(--accent-blue);
     color: #fff;
+}
+
+/* ---- Threshold card: compact, balanced ---- */
+.threshold-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 24px;
+    padding: 20px 24px;
+}
+
+.threshold-info {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+    flex: 1 1 320px;
+}
+
+.threshold-info .admin-card-title { margin-bottom: 2px; font-size: 15px; }
+.threshold-info .admin-card-sub   { margin-bottom: 0; font-size: 12.5px; max-width: 480px; }
+
+.threshold-icon {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: linear-gradient(135deg, rgba(54,153,255,0.18), rgba(54,153,255,0.05));
+    color: var(--accent-blue);
+    border: 1px solid rgba(54,153,255,0.25);
+}
+.threshold-icon svg { width: 20px; height: 20px; }
+
+.threshold-form {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 0;
+}
+
+.threshold-input-group {
+    margin-bottom: 0;
+    width: 180px;
+}
+
+.threshold-input-group label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    display: block;
+    font-weight: 600;
+}
+
+/* Input with leading currency prefix */
+.input-with-prefix {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.input-with-prefix .input-prefix {
+    position: absolute;
+    left: 12px;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 600;
+    pointer-events: none;
+}
+.input-with-prefix .wallet-input {
+    padding-left: 24px;
+    padding-right: 12px;
+    height: 36px;
+    font-size: 13px;
+    width: 100%;
+}
+
+.threshold-form .btn-primary {
+    height: 36px;
+    padding: 0 18px;
+    font-size: 12px;
+}
+
+.threshold-form .admin-status {
+    flex-basis: 100%;
+    margin-top: 4px;
+}
+
+@media (max-width: 640px) {
+    .threshold-card { padding: 18px; }
+    .threshold-form { width: 100%; }
+    .threshold-input-group { flex: 1; width: auto; min-width: 140px; }
 }
