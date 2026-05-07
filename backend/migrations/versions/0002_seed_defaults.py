@@ -51,7 +51,7 @@ def _parse_seed_tokens(raw: str) -> list[dict]:
             "symbol": symbol.strip().upper(),
             "contract_address": contract.strip().lower(),
             "decimals": int(decimals_str.strip()),
-            "network": "ethereum",
+            "network": settings.network_environment,
             "is_active": True,
         })
     return rows

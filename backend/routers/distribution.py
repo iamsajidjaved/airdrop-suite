@@ -11,7 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.auth import require_admin
-from backend.config import settings
+from backend.config import NETWORKS, settings
 from backend.db import get_session
 from backend.db_models import (
     AirdropToken,
@@ -295,7 +295,7 @@ async def patch_campaign(
     payload: dict,
     session: AsyncSession = Depends(get_session),
 ):
-    """Limited PATCH: toggle dry_run, change name, max_total_amount, sender_mode.
+    """Limited PATCH: toggle dry_run, change name, max_total_amount, sender_mode, recipient_filter.
 
     To replace the assigned sender wallet set, use
     `PUT /campaigns/{id}/wallets`.
@@ -303,11 +303,13 @@ async def patch_campaign(
     c = await dist.get_campaign(session, campaign_id)
     if c is None:
         raise HTTPException(status_code=404, detail="Campaign not found")
-    allowed = {"dry_run", "name", "max_total_amount", "sender_mode"}
+    allowed = {"dry_run", "name", "max_total_amount", "sender_mode", "recipient_filter"}
     for k, v in payload.items():
         if k in allowed:
             if k == "sender_mode" and v not in ("single", "multi"):
                 raise HTTPException(status_code=400, detail="sender_mode must be 'single' or 'multi'")
+            if k == "recipient_filter" and not isinstance(v, dict):
+                raise HTTPException(status_code=400, detail="recipient_filter must be a JSON object")
             setattr(c, k, v)
     await session.commit()
     await session.refresh(c)
@@ -401,6 +403,15 @@ async def stop_worker():
 
 @router.get("/config", response_model=DistributionConfigOut)
 async def get_distribution_config():
+    # Resolve the canonical network key from the current config so the
+    # frontend can show network-correct explorer links.
+    env = (settings.network_environment or "mainnet").lower()
+    if env not in NETWORKS:
+        # Fall back to matching by chain_id.
+        for key, info in NETWORKS.items():
+            if int(info["chain_id"]) == settings.etherscan_chain_id:
+                env = key
+                break
     return DistributionConfigOut(
         eth_rpc_configured=bool((settings.eth_rpc_url or "").strip()),
         kek_configured=bool((settings.airdrop_kek or "").strip()),
@@ -410,4 +421,5 @@ async def get_distribution_config():
         max_inflight=settings.distribution_max_inflight,
         receipt_poll_seconds=settings.distribution_receipt_poll_seconds,
         max_retries_per_recipient=settings.distribution_max_retries_per_recipient,
+        network=env,
     )

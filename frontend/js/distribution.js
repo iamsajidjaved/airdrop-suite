@@ -51,8 +51,25 @@ function fmtNum(v, dp = 6) {
 function pill(status) {
     return `<span class="dist-pill ${escapeHtml(status)}">${escapeHtml(status)}</span>`;
 }
+// Block explorer base URL — resolved once from /config on page load.
+const NETWORK_EXPLORERS = {
+    'ethereum': 'https://etherscan.io/tx',
+    'sepolia':  'https://sepolia.etherscan.io/tx',
+    'holesky':  'https://holesky.etherscan.io/tx',
+};
+let EXPLORER_TX_BASE = NETWORK_EXPLORERS['ethereum'];
+
+async function loadConfig() {
+    try {
+        const cfg = await api('GET', '/config');
+        if (cfg.network && NETWORK_EXPLORERS[cfg.network]) {
+            EXPLORER_TX_BASE = NETWORK_EXPLORERS[cfg.network];
+        }
+    } catch (_) {}
+}
+
 function etherscanTx(hash) {
-    return `<a class="tx-link" target="_blank" rel="noopener" href="https://etherscan.io/tx/${encodeURIComponent(hash)}">${shortAddr(hash)}</a>`;
+    return `<a class="tx-link" target="_blank" rel="noopener" href="${EXPLORER_TX_BASE}/${encodeURIComponent(hash)}">${shortAddr(hash)}</a>`;
 }
 
 // ---------- Worker / config ----------
@@ -380,6 +397,7 @@ document.addEventListener('DOMContentLoaded', () => {
     $('recipPrev').addEventListener('click', () => { RECIP_OFFSET = Math.max(0, RECIP_OFFSET - RECIP_LIMIT); refreshRecipients(); });
     $('recipNext').addEventListener('click', () => { RECIP_OFFSET += RECIP_LIMIT; refreshRecipients(); });
 
+    loadConfig();
     refreshWorker();
     refreshWallets();
     loadTokens().then(refreshCampaigns);

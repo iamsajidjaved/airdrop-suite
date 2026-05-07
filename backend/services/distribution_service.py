@@ -244,14 +244,25 @@ async def build_recipients(session: AsyncSession, campaign_id: int) -> tuple[int
 
     where = and_(*conditions) if conditions else None
 
-    addr_stmt = select(AirdropTransaction.to_address).distinct()
+    # Always restrict to the campaign's network so mainnet and testnet
+    # transactions are never mixed into the same recipient list.
+    addr_stmt = (
+        select(AirdropTransaction.to_address)
+        .join(AirdropToken, AirdropToken.id == AirdropTransaction.token_id)
+        .where(AirdropToken.network == campaign.network)
+        .distinct()
+    )
     if where is not None:
         addr_stmt = addr_stmt.where(where)
     if f.get("limit"):
         addr_stmt = addr_stmt.limit(int(f["limit"]))
 
+    ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
     rows = (await session.execute(addr_stmt)).all()
-    addresses = [str(r[0]).lower() for r in rows if str(r[0]).lower() not in excludes]
+    addresses = [
+        a for a in (str(r[0]).lower() for r in rows)
+        if a not in excludes and a != ZERO_ADDRESS
+    ]
     if not addresses:
         return 0, await _count_recipients(session, campaign_id)
 

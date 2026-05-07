@@ -26,7 +26,7 @@ from eth_account import Account
 from sqlalchemy import and_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.config import settings
+from backend.config import chain_id_for, settings
 from backend.db import async_session_factory
 from backend.db_models import (
     AirdropToken,
@@ -40,6 +40,8 @@ from backend.services.web3_client import (
     Web3Unavailable,
     build_transfer_tx,
     estimate_fees,
+    get_revert_reason,
+    get_token_balance,
     get_web3,
     to_checksum,
     token_units,
@@ -197,7 +199,8 @@ class DistributionWorker:
                         async with self._wallet_locks[wallet_id]:
                             await self._send_to_recipient(session, recipient, wallet_id)
                     except Exception as e:  # noqa: BLE001
-                        await self._mark_recipient_failed(session, recipient.id, str(e))
+                        err_msg = str(e) or type(e).__name__
+                        await self._mark_recipient_failed(session, recipient.id, err_msg)
                         self._state.last_error = f"send: {type(e).__name__}: {e}"
                         logger.exception("send failed for recipient %s: %s", recipient.id, e)
             finally:
@@ -250,8 +253,41 @@ class DistributionWorker:
         account = Account.from_key(private_key)
 
         chain_id = await w3.eth.chain_id
+
+        # Validate that the token's configured network matches the RPC chain.
+        # Mismatches mean the contract_address is for the wrong network and every
+        # transaction would revert (or execute against an unrelated contract).
+        expected_chain_id = chain_id_for(token.network)
+        if chain_id != expected_chain_id:
+            raise RuntimeError(
+                f"Chain ID mismatch: token '{token.symbol}' is configured for network "
+                f"'{token.network}' (chain {expected_chain_id}), but the RPC returned "
+                f"chain {chain_id}. Update the token's contract_address and network in "
+                f"Settings → Tokens, or point ETH_RPC_URL at the correct network."
+            )
+
         nonce = await w3.eth.get_transaction_count(to_checksum(wallet.address), "pending")
         max_fee, tip = await estimate_fees()
+
+        # Pre-flight balance checks — fail fast with a clear message rather than
+        # broadcasting a transaction that will revert on-chain.
+        eth_balance_wei = await w3.eth.get_balance(to_checksum(wallet.address))
+        estimated_gas_cost_wei = max_fee * 150_000  # generous upper bound
+        if eth_balance_wei < estimated_gas_cost_wei:
+            eth_have = Decimal(eth_balance_wei) / Decimal(10**18)
+            eth_need = Decimal(estimated_gas_cost_wei) / Decimal(10**18)
+            raise RuntimeError(
+                f"Insufficient ETH for gas: wallet {wallet.address} has "
+                f"{eth_have:.6f} ETH, estimated cost ~{eth_need:.6f} ETH"
+            )
+
+        token_balance = await get_token_balance(token.contract_address, wallet.address, token.decimals)
+        if token_balance < Decimal(str(recipient.amount)):
+            raise RuntimeError(
+                f"Insufficient {token.symbol}: wallet {wallet.address} has "
+                f"{token_balance}, needs {recipient.amount}"
+            )
+
         amount_units = token_units(Decimal(recipient.amount), token.decimals)
 
         tx = await build_transfer_tx(
@@ -340,8 +376,10 @@ class DistributionWorker:
                         recipient.status = "confirmed"
                         self._state.confirmed_total += 1
                     else:
+                        revert_detail = await get_revert_reason(tx.tx_hash, w3)
+                        tx.raw_error = revert_detail[:2000] if revert_detail else None
                         recipient.status = "failed"
-                        recipient.last_error = "tx reverted"
+                        recipient.last_error = f"tx reverted: {revert_detail}"[:2000]
                         self._state.failed_total += 1
             await session.commit()
 

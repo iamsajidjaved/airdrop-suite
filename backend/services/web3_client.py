@@ -66,7 +66,7 @@ def get_web3() -> AsyncWeb3:
             "ETH_RPC_URL is not configured. Set it in .env to enable wallet "
             "balance lookups and the distribution worker."
         )
-    return AsyncWeb3(AsyncHTTPProvider(url, request_kwargs={"timeout": 30}))
+    return AsyncWeb3(AsyncHTTPProvider(url, request_kwargs={"timeout": 10}))
 
 
 def to_checksum(address: str) -> str:
@@ -127,8 +127,11 @@ async def build_transfer_tx(
             # Add a 20% safety margin.
             gas_limit = int(gas_limit * 12 // 10)
         except Exception as e:  # noqa: BLE001
-            logger.warning("gas estimate failed for %s -> %s: %s; using 100k fallback", sender, recipient, e)
-            gas_limit = 100_000
+            raise RuntimeError(
+                f"Gas estimation failed for transfer to {recipient} — the contract may "
+                f"not be deployed on this network, or the sender has insufficient balance. "
+                f"Original error: {e}"
+            ) from e
     tx["gas"] = int(gas_limit)
     return await fn.build_transaction(tx)
 
@@ -151,3 +154,38 @@ async def estimate_fees() -> tuple[int, int]:
         # base_fee == 0 (testnet) — fall back to tip.
         max_fee = tip
     return max_fee, tip
+
+
+async def get_revert_reason(tx_hash: str, w3: AsyncWeb3) -> str:
+    """Attempt to replay a reverted transaction to extract the revert reason.
+
+    Returns a human-readable string. Never raises — falls back to a plain
+    description if the RPC doesn't support debug_traceTransaction or the
+    replay fails.
+    """
+    try:
+        receipt = await w3.eth.get_transaction_receipt(tx_hash)
+        tx = await w3.eth.get_transaction(tx_hash)
+        # eth_call at the mined block replays the transaction and raises with
+        # the revert message encoded in the exception.
+        await w3.eth.call(
+            {
+                "to": tx["to"],
+                "from": tx["from"],
+                "data": tx["input"],
+                "value": tx["value"],
+                "gas": tx["gas"],
+            },
+            receipt["blockNumber"],
+        )
+        # If eth_call succeeds here the revert was likely a gas issue.
+        return "transaction reverted (gas exhaustion or state change between blocks)"
+    except Exception as e:  # noqa: BLE001
+        msg = str(e)
+        # web3.py wraps revert reasons in ContractLogicError; try to surface
+        # the inner message cleanly.
+        if "execution reverted" in msg.lower():
+            # Strip the surrounding "ContractLogicError: execution reverted: " prefix.
+            for prefix in ("ContractLogicError: ", "execution reverted: ", "execution reverted"):
+                msg = msg.replace(prefix, "").strip()
+        return msg or "unknown revert reason"

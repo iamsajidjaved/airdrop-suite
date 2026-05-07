@@ -18,7 +18,15 @@
       "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Sajid\\\\Documents\\\\wallet-explorer\" | Where-Object { $_.Name -ne \".venv\" } | ForEach-Object { \"$\\($_.Mode\\) $\\($_.Name\\)\" })",
       "Bash(New-Item -ItemType Directory -Force -Path \"C:\\\\Users\\\\Sajid\\\\Documents\\\\wallet-explorer\\\\scripts\")",
       "Bash(Out-Null)",
-      "Bash(Write-Output \"done\")"
+      "Bash(Write-Output \"done\")",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(claude mcp *)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_console_messages",
+      "mcp__playwright__browser_evaluate",
+      "Bash(Start-Sleep -Seconds 3)",
+      "Bash(Invoke-RestMethod -Uri \"http://127.0.0.1:8000/api/health\" -Method GET)"
     ]
   }
 }

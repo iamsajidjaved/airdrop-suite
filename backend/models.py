@@ -329,3 +329,4 @@ class DistributionConfigOut(BaseModel):
     max_inflight: int
     receipt_poll_seconds: int
     max_retries_per_recipient: int
+    network: str
