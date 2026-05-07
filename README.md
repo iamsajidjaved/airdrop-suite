@@ -32,8 +32,7 @@ A web application for exploring cryptocurrency wallet transactions across Ethere
 ```bash
 uv sync                                          # install dependencies
 uv run alembic upgrade head                      # apply DB migrations (first time + after pulls)
-uv run uvicorn backend.main:app --reload \
-    --host 127.0.0.1 --port 8000
+uv run uvicorn backend.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
 Or use `start.ps1` / `start.bat` — they wrap `uv sync` + uvicorn. Run `alembic upgrade head` yourself the first time.
