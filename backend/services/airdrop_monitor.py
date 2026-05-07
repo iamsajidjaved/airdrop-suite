@@ -177,7 +177,6 @@ class AirdropMonitorService:
         blocks_scanned_per_token: dict[str, dict] = {}
         new_count = 0
 
-        quality_enabled = settings.quality_filter_enabled
         quality_drop_totals: dict[str, int] = {
             "blocklist": 0,
             "contract": 0,
@@ -194,6 +193,7 @@ class AirdropMonitorService:
                 net = network.strip().lower()
                 tokens = [t for t in tokens if (t.network or "").lower() == net]
             threshold = await self._load_threshold(session)
+            qs = await wallet_quality.load_quality_settings(session)
 
             if not tokens:
                 logger.warning("No active airdrop tokens configured.")
@@ -222,6 +222,7 @@ class AirdropMonitorService:
                 )
                 for t in tokens
             ]
+        quality_enabled = qs.quality_filter_enabled
 
         # 2) Fetch concurrently (no DB session held). Each token uses the
         # Etherscan v2 chain id derived from its network column, so mainnet
@@ -279,7 +280,7 @@ class AirdropMonitorService:
                         rows,
                         blocklist=blocklist_by_net.get(spec.network, set()),
                         known_contracts=contracts_by_net.get(spec.network, set()),
-                        aggregator_threshold=settings.quality_per_run_aggregator_drop_threshold,
+                        aggregator_threshold=qs.quality_per_run_aggregator_drop_threshold,
                     )
                     for k, v in drop_counts.items():
                         quality_drop_totals[k] += v
@@ -317,7 +318,7 @@ class AirdropMonitorService:
             async with async_session_factory() as session:
                 for net in networks_seen:
                     # Pull recent unknown to_addresses for this network.
-                    if settings.quality_contract_check_enabled:
+                    if qs.quality_contract_check_enabled:
                         unknown_addrs = await session.scalars(
                             select(AirdropTransaction.to_address)
                             .where(AirdropTransaction.network == net)
@@ -335,7 +336,8 @@ class AirdropMonitorService:
                         if addrs:
                             try:
                                 summary = await wallet_quality.enrich_contracts(
-                                    session, addrs, network=net
+                                    session, addrs, network=net,
+                                    concurrency=qs.quality_contract_check_concurrency,
                                 )
                                 for k, v in summary.items():
                                     quality_enrich_summary[k] = (
@@ -350,9 +352,20 @@ class AirdropMonitorService:
                         contract_pruned = await wallet_quality.prune_contract_recipients(
                             session, net
                         )
-                        prune = await wallet_quality.prune_low_quality(session, net)
+                        prune = await wallet_quality.prune_low_quality(
+                            session, net,
+                            max_inbound_count=qs.quality_max_inbound_count,
+                            max_distinct_senders=qs.quality_max_distinct_senders,
+                            dormant_singleton_days=qs.quality_dormant_singleton_days,
+                        )
+                        cross_pruned = await wallet_quality.prune_cross_token_aggregators(
+                            session, net, qs.quality_cross_token_aggregator_threshold
+                        )
                         prune["contract"] = contract_pruned
-                        prune["rows_deleted"] = prune.get("rows_deleted", 0) + contract_pruned
+                        prune["cross_token"] = cross_pruned
+                        prune["rows_deleted"] = (
+                            prune.get("rows_deleted", 0) + contract_pruned + cross_pruned
+                        )
                         for k, v in prune.items():
                             quality_prune_summary[k] = quality_prune_summary.get(k, 0) + v
                     except Exception as e:  # noqa: BLE001

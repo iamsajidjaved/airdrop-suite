@@ -103,13 +103,13 @@
     border-radius: 8px;
 }
 
-#tokensTable, #txTable {
+#tokensTable, #txTable, #blocklistTable {
     width: 100%;
     border-collapse: collapse;
     font-size: 12px;
 }
 
-#tokensTable th, #txTable th {
+#tokensTable th, #txTable th, #blocklistTable th {
     text-align: left;
     padding: 12px 14px;
     background: var(--bg-input);
@@ -121,19 +121,26 @@
     border-bottom: 1px solid var(--border-color);
 }
 
-#tokensTable td, #txTable td {
+#tokensTable td, #txTable td, #blocklistTable td {
     padding: 12px 14px;
     border-bottom: 1px solid var(--border-color);
     color: var(--text-primary);
     vertical-align: middle;
 }
 
-#tokensTable tr:last-child td, #txTable tr:last-child td {
+#tokensTable tr:last-child td, #txTable tr:last-child td, #blocklistTable tr:last-child td {
     border-bottom: none;
 }
 
-#tokensTable tr:hover td, #txTable tr:hover td {
+#tokensTable tr:hover td, #txTable tr:hover td, #blocklistTable tr:hover td {
     background: var(--bg-hover);
+}
+
+.field-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    line-height: 1.4;
 }
 
 .mono {

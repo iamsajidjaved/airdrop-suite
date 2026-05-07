@@ -26,6 +26,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.config import settings
 from backend.db_models import (
+    AirdropConfig,
     AirdropTransaction,
     DistributionWallet,
     QualityAddressBlocklist,
@@ -33,6 +34,52 @@ from backend.db_models import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+async def load_quality_settings(session: AsyncSession) -> "QualityFilterSettings":
+    """Load quality filter settings from airdrop_config, falling back to env vars."""
+    from backend.models import QualityFilterSettings
+
+    _KEYS = [
+        "quality_filter_enabled",
+        "quality_contract_check_enabled",
+        "quality_contract_check_concurrency",
+        "quality_per_run_aggregator_drop_threshold",
+        "quality_max_inbound_count",
+        "quality_max_distinct_senders",
+        "quality_dormant_singleton_days",
+        "quality_cross_token_aggregator_threshold",
+    ]
+    rows = await session.execute(
+        select(AirdropConfig.key, AirdropConfig.value).where(
+            AirdropConfig.key.in_(_KEYS)
+        )
+    )
+    db: dict[str, str] = {k: v for k, v in rows.all()}
+
+    def _bool(key: str, fallback: bool) -> bool:
+        raw = db.get(key)
+        return fallback if raw is None else raw.strip().lower() in ("1", "true", "yes")
+
+    def _int(key: str, fallback: int) -> int:
+        raw = db.get(key)
+        if raw is None:
+            return fallback
+        try:
+            return int(raw)
+        except (ValueError, TypeError):
+            return fallback
+
+    return QualityFilterSettings(
+        quality_filter_enabled=_bool("quality_filter_enabled", settings.quality_filter_enabled),
+        quality_contract_check_enabled=_bool("quality_contract_check_enabled", settings.quality_contract_check_enabled),
+        quality_contract_check_concurrency=_int("quality_contract_check_concurrency", settings.quality_contract_check_concurrency),
+        quality_per_run_aggregator_drop_threshold=_int("quality_per_run_aggregator_drop_threshold", settings.quality_per_run_aggregator_drop_threshold),
+        quality_max_inbound_count=_int("quality_max_inbound_count", settings.quality_max_inbound_count),
+        quality_max_distinct_senders=_int("quality_max_distinct_senders", settings.quality_max_distinct_senders),
+        quality_dormant_singleton_days=_int("quality_dormant_singleton_days", settings.quality_dormant_singleton_days),
+        quality_cross_token_aggregator_threshold=_int("quality_cross_token_aggregator_threshold", 0),
+    )
 
 
 # ---------- Gate A loaders (cheap, run once per monitor pass) ----------
@@ -179,18 +226,28 @@ async def prune_contract_recipients(session: AsyncSession, network: str) -> int:
     return res.rowcount or 0
 
 
-async def prune_low_quality(session: AsyncSession, network: str) -> dict[str, int]:
+async def prune_low_quality(
+    session: AsyncSession,
+    network: str,
+    *,
+    max_inbound_count: int | None = None,
+    max_distinct_senders: int | None = None,
+    dormant_singleton_days: int | None = None,
+) -> dict[str, int]:
     """Delete rows whose `to_address` aggregates to low-quality.
 
     Rules (any match → delete all rows for that to_address):
-      * inbound_count > quality_max_inbound_count          (exchange-like)
-      * distinct_senders > quality_max_distinct_senders    (hot wallet)
+      * inbound_count > max_inbound_count          (exchange-like)
+      * distinct_senders > max_distinct_senders    (hot wallet)
       * exactly 1 inbound and last_seen older than dormant cutoff
     Returns counts: {"aggregator": A, "dormant_singleton": D, "rows_deleted": R}.
+    Keyword args override env-var defaults so the caller can pass DB-loaded values.
     """
-    cutoff = datetime.now(tz=timezone.utc) - timedelta(
-        days=settings.quality_dormant_singleton_days
-    )
+    _max_inbound = max_inbound_count if max_inbound_count is not None else settings.quality_max_inbound_count
+    _max_senders = max_distinct_senders if max_distinct_senders is not None else settings.quality_max_distinct_senders
+    _dormant_days = dormant_singleton_days if dormant_singleton_days is not None else settings.quality_dormant_singleton_days
+
+    cutoff = datetime.now(tz=timezone.utc) - timedelta(days=_dormant_days)
 
     # Aggregator delete
     agg_sql = text(
@@ -213,8 +270,8 @@ async def prune_low_quality(session: AsyncSession, network: str) -> dict[str, in
         agg_sql,
         {
             "network": network,
-            "max_inbound": settings.quality_max_inbound_count,
-            "max_senders": settings.quality_max_distinct_senders,
+            "max_inbound": _max_inbound,
+            "max_senders": _max_senders,
         },
     )
     agg_deleted = agg_res.rowcount or 0
@@ -244,6 +301,37 @@ async def prune_low_quality(session: AsyncSession, network: str) -> dict[str, in
         "dormant_singleton": dorm_deleted,
         "rows_deleted": agg_deleted + dorm_deleted,
     }
+
+
+async def prune_cross_token_aggregators(
+    session: AsyncSession, network: str, threshold: int
+) -> int:
+    """Delete airdrop_transactions where to_address appears in > threshold distinct token IDs.
+
+    Catches wallets (DEX routers, bridges) that collect across many token contracts.
+    threshold=0 disables the check entirely.
+    Returns number of rows deleted.
+    """
+    if threshold <= 0:
+        return 0
+    sql = text(
+        """
+        WITH bad AS (
+            SELECT to_address
+            FROM airdrop_transactions
+            WHERE network = :network
+            GROUP BY to_address
+            HAVING COUNT(DISTINCT token_id) > :threshold
+        )
+        DELETE FROM airdrop_transactions t
+        USING bad
+        WHERE t.network = :network
+          AND t.to_address = bad.to_address
+        """
+    )
+    res = await session.execute(sql, {"network": network, "threshold": threshold})
+    await session.commit()
+    return res.rowcount or 0
 
 
 # ---------- Blocklist admin helpers ----------

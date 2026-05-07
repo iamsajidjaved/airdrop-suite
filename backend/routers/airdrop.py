@@ -30,6 +30,8 @@ from backend.models import (
     AirdropTransactionListResponse,
     AirdropTransactionOut,
     MonitorRunResult,
+    QualityFilterSettings,
+    QualityFilterUpdate,
 )
 from backend.services import wallet_quality
 from backend.services.airdrop_monitor import AirdropMonitorService
@@ -334,6 +336,43 @@ async def delete_blocklist_entry(
         session, address=address, network=network
     )
     return {"ok": True, "deleted": deleted}
+
+
+_FILTER_KEYS = [
+    "quality_filter_enabled",
+    "quality_contract_check_enabled",
+    "quality_contract_check_concurrency",
+    "quality_per_run_aggregator_drop_threshold",
+    "quality_max_inbound_count",
+    "quality_max_distinct_senders",
+    "quality_dormant_singleton_days",
+    "quality_cross_token_aggregator_threshold",
+]
+
+
+@router.get("/filters", response_model=QualityFilterSettings)
+async def get_filters(session: AsyncSession = Depends(get_session)):
+    """Return the current quality filter configuration."""
+    return await wallet_quality.load_quality_settings(session)
+
+
+@router.put("/filters", response_model=QualityFilterSettings, dependencies=[Depends(require_admin)])
+async def update_filters(
+    payload: QualityFilterUpdate,
+    session: AsyncSession = Depends(get_session),
+):
+    """Batch-update quality filter settings. Only provided fields are written."""
+    for key, value in payload.model_dump(exclude_none=True).items():
+        if key not in _FILTER_KEYS:
+            continue
+        str_val = str(value).lower() if isinstance(value, bool) else str(value)
+        cfg = await session.get(AirdropConfig, key)
+        if cfg is None:
+            session.add(AirdropConfig(key=key, value=str_val))
+        else:
+            cfg.value = str_val
+    await session.commit()
+    return await wallet_quality.load_quality_settings(session)
 
 
 @router.post("/quality/prune", dependencies=[Depends(require_admin)])

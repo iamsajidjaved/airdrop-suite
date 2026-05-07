@@ -72,6 +72,7 @@
         tokens:    $("settings-tokens"),
         wallets:   $("settings-wallets"),
         advanced:  $("settings-advanced"),
+        filters:   $("settings-filters"),
     };
 
     function setTab(name) {
@@ -379,9 +380,181 @@
         }
     }
 
+    // =====================================================================
+    // FILTERS — quality filter settings + address blocklist
+    // =====================================================================
+
+    async function loadFilters() {
+        try {
+            const f = await airdropApi("/filters");
+            $("filterEnabled").checked              = f.quality_filter_enabled;
+            $("filterContractCheckEnabled").checked = f.quality_contract_check_enabled;
+            $("filterContractConcurrency").value    = f.quality_contract_check_concurrency;
+            $("filterAggregatorThreshold").value    = f.quality_per_run_aggregator_drop_threshold;
+            $("filterMaxInbound").value             = f.quality_max_inbound_count;
+            $("filterMaxSenders").value             = f.quality_max_distinct_senders;
+            $("filterDormantDays").value            = f.quality_dormant_singleton_days;
+            $("filterCrossTokenThreshold").value    = f.quality_cross_token_aggregator_threshold;
+        } catch (e) {
+            flash($("filtersStatus"), e.message, true);
+        }
+    }
+
+    $("filtersForm").addEventListener("submit", async (ev) => {
+        ev.preventDefault();
+        const payload = {
+            quality_filter_enabled:                    $("filterEnabled").checked,
+            quality_contract_check_enabled:            $("filterContractCheckEnabled").checked,
+            quality_contract_check_concurrency:        parseInt($("filterContractConcurrency").value, 10),
+            quality_per_run_aggregator_drop_threshold: parseInt($("filterAggregatorThreshold").value, 10),
+            quality_max_inbound_count:                 parseInt($("filterMaxInbound").value, 10),
+            quality_max_distinct_senders:              parseInt($("filterMaxSenders").value, 10),
+            quality_dormant_singleton_days:            parseInt($("filterDormantDays").value, 10),
+            quality_cross_token_aggregator_threshold:  parseInt($("filterCrossTokenThreshold").value, 10),
+        };
+        const headers = { "Content-Type": "application/json" };
+        const t = getAdminToken();
+        if (t) headers["X-Admin-Token"] = t;
+        try {
+            const res = await fetch(AIRDROP_API + "/filters", {
+                method: "PUT", headers, body: JSON.stringify(payload),
+            });
+            if (!res.ok) {
+                const d = await res.json().catch(() => ({}));
+                throw new Error(d.detail || res.statusText);
+            }
+            flash($("filtersStatus"), "Saved");
+            await loadFilters();
+        } catch (e) {
+            flash($("filtersStatus"), e.message, true);
+        }
+    });
+
+    // ---- Blocklist ----
+    let _blocklistOffset = 0;
+    const BLOCKLIST_LIMIT = 50;
+
+    async function loadBlocklist(offset = 0) {
+        _blocklistOffset = offset;
+        const tbody = $("blocklistTbody");
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding:16px;">Loading…</td></tr>`;
+        try {
+            const data = await airdropApi(`/quality/blocklist?limit=${BLOCKLIST_LIMIT}&offset=${offset}`);
+            if (!data.items.length) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding:16px;">No blocklist entries.</td></tr>`;
+            } else {
+                tbody.innerHTML = data.items.map(b => `
+                    <tr>
+                        <td class="mono">${escapeHtml(b.address)}</td>
+                        <td>${escapeHtml(b.reason)}</td>
+                        <td>${escapeHtml(b.source)}</td>
+                        <td><span class="net-pill net-${escapeHtml(b.network)}">${escapeHtml(b.network)}</span></td>
+                        <td class="mono">${b.added_at ? b.added_at.slice(0, 10) : "—"}</td>
+                        <td class="row-actions">
+                            <button class="row-btn danger" data-bl-del="${escapeHtml(b.address)}" data-bl-net="${escapeHtml(b.network)}">Remove</button>
+                        </td>
+                    </tr>`).join("");
+            }
+            const pg = $("blocklistPagination");
+            const total = data.total;
+            const page  = Math.floor(offset / BLOCKLIST_LIMIT) + 1;
+            const totalPages = Math.ceil(total / BLOCKLIST_LIMIT) || 1;
+            pg.innerHTML = `
+                <button class="btn btn-secondary btn-sm" ${offset === 0 ? "disabled" : ""} data-bl-page="prev">Prev</button>
+                <span style="font-size:13px; color:var(--text-muted);">Page ${page} of ${totalPages} (${total} total)</span>
+                <button class="btn btn-secondary btn-sm" ${offset + BLOCKLIST_LIMIT >= total ? "disabled" : ""} data-bl-page="next">Next</button>`;
+            $("blocklistError").style.display = "none";
+        } catch (e) {
+            tbody.innerHTML = `<tr><td colspan="6" class="admin-error">${escapeHtml(e.message)}</td></tr>`;
+        }
+    }
+
+    $("blocklistPagination").addEventListener("click", (ev) => {
+        const btn = ev.target.closest("[data-bl-page]");
+        if (!btn || btn.disabled) return;
+        if (btn.dataset.blPage === "prev") loadBlocklist(_blocklistOffset - BLOCKLIST_LIMIT);
+        else loadBlocklist(_blocklistOffset + BLOCKLIST_LIMIT);
+    });
+
+    $("blocklistTbody").addEventListener("click", async (ev) => {
+        const btn = ev.target.closest("[data-bl-del]");
+        if (!btn) return;
+        const addr = btn.dataset.blDel;
+        const net  = btn.dataset.blNet;
+        if (!confirm(`Remove ${addr} from the blocklist (${net})?`)) return;
+        const headers = {};
+        const t = getAdminToken();
+        if (t) headers["X-Admin-Token"] = t;
+        try {
+            const res = await fetch(
+                `${AIRDROP_API}/quality/blocklist?address=${encodeURIComponent(addr)}&network=${encodeURIComponent(net)}`,
+                { method: "DELETE", headers }
+            );
+            if (!res.ok) {
+                const d = await res.json().catch(() => ({}));
+                throw new Error(d.detail || res.statusText);
+            }
+            await loadBlocklist(_blocklistOffset);
+        } catch (e) { alert(e.message); }
+    });
+
+    function openBlocklistModal() {
+        $("blAddress").value = "";
+        $("blReason").value = "";
+        $("blNetwork").innerHTML = networks.map(n =>
+            `<option value="${escapeHtml(n.key)}">${escapeHtml(n.label)}</option>`
+        ).join("");
+        $("blNetwork").value = "ethereum";
+        $("blocklistFormError").style.display = "none";
+        $("blocklistModal").style.display = "flex";
+    }
+    function closeBlocklistModal() { $("blocklistModal").style.display = "none"; }
+
+    $("addBlocklistBtn").addEventListener("click", openBlocklistModal);
+    $("blCancelBtn").addEventListener("click", closeBlocklistModal);
+    $("blocklistModal").addEventListener("click", (ev) => {
+        if (ev.target === $("blocklistModal")) closeBlocklistModal();
+    });
+
+    $("blocklistForm").addEventListener("submit", async (ev) => {
+        ev.preventDefault();
+        const addr   = $("blAddress").value.trim();
+        const reason = $("blReason").value.trim();
+        const net    = $("blNetwork").value;
+        const headers = {};
+        const t = getAdminToken();
+        if (t) headers["X-Admin-Token"] = t;
+        try {
+            const res = await fetch(
+                `${AIRDROP_API}/quality/blocklist?address=${encodeURIComponent(addr)}&reason=${encodeURIComponent(reason)}&network=${encodeURIComponent(net)}&source=manual`,
+                { method: "POST", headers }
+            );
+            if (!res.ok) {
+                const d = await res.json().catch(() => ({}));
+                throw new Error(d.detail || res.statusText);
+            }
+            closeBlocklistModal();
+            await loadBlocklist(0);
+        } catch (e) {
+            $("blocklistFormError").textContent = e.message;
+            $("blocklistFormError").style.display = "block";
+        }
+    });
+
     // ---------- init ----------
     (async () => {
         await loadNetworks();
-        await Promise.all([loadThreshold(), loadTokens(), loadWallets(), loadConfig()]);
+        let blocklistLoaded = false;
+        tabs.forEach(tab => tab.addEventListener("click", async () => {
+            if (tab.dataset.tab === "filters" && !blocklistLoaded) {
+                blocklistLoaded = true;
+                await loadBlocklist(0);
+            }
+        }));
+        await Promise.all([loadThreshold(), loadTokens(), loadWallets(), loadConfig(), loadFilters()]);
+        if ((window.location.hash || "").replace(/^#/, "") === "filters" && !blocklistLoaded) {
+            blocklistLoaded = true;
+            await loadBlocklist(0);
+        }
     })();
 })();

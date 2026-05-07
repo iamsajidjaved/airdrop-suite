@@ -86,6 +86,10 @@
                     <svg class="tab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4Z"/></svg>
                     Advanced
                 </button>
+                <button class="settings-tab" data-tab="filters" role="tab">
+                    <svg class="tab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                    Filters
+                </button>
             </nav>
 
             <!-- ===== THRESHOLD ===== -->
@@ -201,6 +205,101 @@
                 </div>
             </section>
 
+            <!-- ===== FILTERS ===== -->
+            <section id="settings-filters" class="settings-section" style="display:none;">
+
+                <!-- Card 1: Quality filter thresholds -->
+                <div class="card admin-card">
+                    <div class="admin-card-header-row">
+                        <div>
+                            <h2 class="admin-card-title">Quality Filters</h2>
+                            <p class="admin-card-sub">Controls which recipient addresses are kept in the database. Applied on each scan run. Changes take effect on the next scan.</p>
+                        </div>
+                    </div>
+
+                    <form id="filtersForm">
+                        <div class="toggle-row" style="margin-bottom:16px;">
+                            <input type="checkbox" id="filterEnabled">
+                            <label for="filterEnabled">Enable quality filtering — when off, all transfers are stored without pruning</label>
+                        </div>
+
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
+                            <div class="input-group" style="margin-bottom:0;">
+                                <label for="filterAggregatorThreshold">In-batch aggregator threshold</label>
+                                <input type="number" id="filterAggregatorThreshold" class="wallet-input" min="0" step="1" placeholder="50">
+                                <p class="field-hint">Any recipient address receiving more than this many transfers in one scan batch is treated as an exchange or router and dropped. Set to 0 to disable.</p>
+                            </div>
+                            <div class="input-group" style="margin-bottom:0;">
+                                <label for="filterMaxInbound">Max inbound transactions</label>
+                                <input type="number" id="filterMaxInbound" class="wallet-input" min="1" step="1" placeholder="1000">
+                                <p class="field-hint">Addresses with more total inbound transactions than this are pruned as exchange-like hot wallets.</p>
+                            </div>
+                            <div class="input-group" style="margin-bottom:0;">
+                                <label for="filterMaxSenders">Max distinct senders</label>
+                                <input type="number" id="filterMaxSenders" class="wallet-input" min="1" step="1" placeholder="500">
+                                <p class="field-hint">Addresses receiving from more distinct senders than this threshold are pruned.</p>
+                            </div>
+                            <div class="input-group" style="margin-bottom:0;">
+                                <label for="filterDormantDays">Dormant singleton cutoff (days)</label>
+                                <input type="number" id="filterDormantDays" class="wallet-input" min="1" step="1" placeholder="180">
+                                <p class="field-hint">Wallets with exactly one inbound transfer older than this many days are pruned as low-engagement.</p>
+                            </div>
+                            <div class="input-group" style="margin-bottom:0;">
+                                <label for="filterCrossTokenThreshold">Cross-token aggregator threshold</label>
+                                <input type="number" id="filterCrossTokenThreshold" class="wallet-input" min="0" step="1" placeholder="0">
+                                <p class="field-hint">Prune addresses appearing across more than this many distinct token streams (e.g. DEX routers). Set to 0 to disable.</p>
+                            </div>
+                        </div>
+
+                        <div class="toggle-row" style="margin-bottom:12px;">
+                            <input type="checkbox" id="filterContractCheckEnabled">
+                            <label for="filterContractCheckEnabled">Enable contract detection via <code>eth_getCode</code> (requires ETH_RPC_URL)</label>
+                        </div>
+                        <div class="input-group" style="margin-bottom:0; max-width:240px;">
+                            <label for="filterContractConcurrency">Contract check concurrency</label>
+                            <input type="number" id="filterContractConcurrency" class="wallet-input" min="1" max="32" step="1" placeholder="4">
+                            <p class="field-hint">Number of parallel <code>eth_getCode</code> calls per scan run.</p>
+                        </div>
+
+                        <div style="display:flex; align-items:center; gap:12px; margin-top:20px;">
+                            <button type="submit" class="btn btn-primary btn-sm">Save Filter Settings</button>
+                            <span id="filtersStatus" class="admin-status"></span>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Card 2: Address blocklist -->
+                <div class="card admin-card admin-card-wide">
+                    <div class="admin-card-header-row">
+                        <div>
+                            <h2 class="admin-card-title">Address Blocklist</h2>
+                            <p class="admin-card-sub">Addresses permanently excluded from airdrop targets. Applied before each insert (Gate A).</p>
+                        </div>
+                        <button id="addBlocklistBtn" class="btn btn-primary btn-sm">+ Add Address</button>
+                    </div>
+                    <div class="table-wrapper">
+                        <table id="blocklistTable">
+                            <thead>
+                                <tr>
+                                    <th>Address</th>
+                                    <th>Reason</th>
+                                    <th>Source</th>
+                                    <th>Network</th>
+                                    <th>Added</th>
+                                    <th style="text-align:right;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="blocklistTbody">
+                                <tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 24px;">Loading…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="blocklistPagination" style="display:flex; justify-content:center; align-items:center; gap:14px; padding:12px 0 0;"></div>
+                    <div id="blocklistError" class="admin-error" style="display:none;"></div>
+                </div>
+
+            </section>
+
         </div>
     </main>
 
@@ -261,6 +360,32 @@
                 <div class="modal-actions">
                     <button type="button" class="btn btn-secondary btn-sm" id="walletCancelBtn">Cancel</button>
                     <button type="submit" class="btn btn-primary btn-sm">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== BLOCKLIST MODAL ===== -->
+    <div id="blocklistModal" class="modal-backdrop" style="display:none;">
+        <div class="modal-card">
+            <h3>Add Blocklist Entry</h3>
+            <form id="blocklistForm">
+                <div class="input-group">
+                    <label for="blAddress">Address (0x…)</label>
+                    <input type="text" id="blAddress" class="wallet-input" required minlength="42" maxlength="64" placeholder="0x…">
+                </div>
+                <div class="input-group">
+                    <label for="blReason">Reason</label>
+                    <input type="text" id="blReason" class="wallet-input" required maxlength="64" placeholder="exchange, bot, bridge, …">
+                </div>
+                <div class="input-group">
+                    <label for="blNetwork">Network</label>
+                    <select id="blNetwork" class="wallet-input"></select>
+                </div>
+                <div id="blocklistFormError" class="admin-error" style="display:none;"></div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary btn-sm" id="blCancelBtn">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm">Add</button>
                 </div>
             </form>
         </div>
