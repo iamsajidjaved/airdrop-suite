@@ -1,8 +1,9 @@
-// Distribution admin UI controller.
+// Airdrop admin UI controller.
 // All admin write endpoints accept a shared-secret X-Admin-Token header
 // (saved to localStorage). Reads are public.
 
 const API = '/api/distribution';
+const AIRDROP_API = '/api/airdrop';
 const TOKEN_KEY = 'wallet_explorer_admin_token';
 
 const $ = (id) => document.getElementById(id);
@@ -10,16 +11,12 @@ const $ = (id) => document.getElementById(id);
 function getAdminToken() {
     return localStorage.getItem(TOKEN_KEY) || '';
 }
-function setAdminToken(t) {
-    if (t) localStorage.setItem(TOKEN_KEY, t);
-    else   localStorage.removeItem(TOKEN_KEY);
-}
 
-async function api(method, path, body = null) {
+async function api(method, path, body = null, baseApi = API) {
     const headers = { 'Content-Type': 'application/json' };
     const token = getAdminToken();
     if (token) headers['X-Admin-Token'] = token;
-    const res = await fetch(API + path, {
+    const res = await fetch(baseApi + path, {
         method,
         headers,
         body: body !== null ? JSON.stringify(body) : undefined,
@@ -39,7 +36,7 @@ function escapeHtml(s) {
         .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
         .replaceAll('"', '&quot;').replaceAll("'", '&#39;');
 }
-function shortAddr(a) { return a ? `${a.slice(0, 6)}…${a.slice(-4)}` : ''; }
+function shortAddr(a) { return a ? `${a.slice(0, 6)}…${a.slice(-4)}` : '—'; }
 function fmtNum(v, dp = 6) {
     if (v === null || v === undefined || v === '') return '—';
     const n = Number(v);
@@ -51,359 +48,265 @@ function fmtNum(v, dp = 6) {
 function pill(status) {
     return `<span class="dist-pill ${escapeHtml(status)}">${escapeHtml(status)}</span>`;
 }
-// Block explorer base URL — resolved once from /config on page load.
-const NETWORK_EXPLORERS = {
-    'ethereum': 'https://etherscan.io/tx',
-    'sepolia':  'https://sepolia.etherscan.io/tx',
-    'holesky':  'https://holesky.etherscan.io/tx',
-};
-let EXPLORER_TX_BASE = NETWORK_EXPLORERS['ethereum'];
 
+const NETWORK_EXPLORERS = {
+    ethereum: 'https://etherscan.io/tx',
+    sepolia:  'https://sepolia.etherscan.io/tx',
+    holesky:  'https://holesky.etherscan.io/tx',
+};
+let EXPLORER_TX_BASE = NETWORK_EXPLORERS.ethereum;
+
+function etherscanTx(hash) {
+    if (!hash) return '—';
+    const short = `${hash.slice(0, 10)}…`;
+    return `<a href="${EXPLORER_TX_BASE}/${escapeHtml(hash)}" target="_blank" rel="noopener" style="color:var(--accent-primary); text-decoration:none; font-family:monospace; font-size:12px;">${short}</a>`;
+}
+
+function flash(el, msg, isError = false) {
+    el.textContent = msg;
+    el.style.color = isError ? 'var(--accent-danger)' : 'var(--accent-success)';
+    setTimeout(() => { el.textContent = ''; }, 3000);
+}
+
+function debounce(fn, delay) {
+    let t;
+    return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), delay); };
+}
+
+// ---- pagination state ----
+let SENDS_OFFSET = 0;
+const SENDS_LIMIT = 50;
+let SENDS_STATUS_FILTER = '';
+let SENDS_ADDRESS_FILTER = '';
+
+// ---- load tokens into settings form ----
+async function loadTokens() {
+    try {
+        const tokens = await api('GET', '/tokens', null, AIRDROP_API);
+        const sel = $('cfgToken');
+        const current = sel.value;
+        // Keep the placeholder option
+        while (sel.options.length > 1) sel.remove(1);
+        (tokens || []).forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t.id;
+            opt.textContent = `${t.symbol} (${t.network})`;
+            sel.appendChild(opt);
+        });
+        if (current) sel.value = current;
+    } catch (e) {
+        console.warn('loadTokens:', e);
+    }
+}
+
+// ---- load wallets count for KPI ----
+async function loadWalletsKpi() {
+    try {
+        const wallets = await api('GET', '/wallets');
+        const active = (wallets || []).filter(w => w.is_active).length;
+        $('kpiWallets').textContent = `${active} / ${(wallets || []).length}`;
+    } catch (e) {
+        $('kpiWallets').textContent = '—';
+    }
+}
+
+// ---- config ----
 async function loadConfig() {
     try {
         const cfg = await api('GET', '/config');
-        if (cfg.network && NETWORK_EXPLORERS[cfg.network]) {
-            EXPLORER_TX_BASE = NETWORK_EXPLORERS[cfg.network];
+        // Populate form
+        const tokenSel = $('cfgToken');
+        if (cfg.distribution_token_id) {
+            tokenSel.value = String(cfg.distribution_token_id);
         }
-    } catch (_) {}
+        $('cfgAmount').value = cfg.distribution_amount || '1.0';
+        const modeRadio = document.querySelector(`input[name="cfgMode"][value="${cfg.distribution_mode || 'all'}"]`);
+        if (modeRadio) modeRadio.checked = true;
+        $('cfgInterval').value = cfg.distribution_interval_seconds || 10;
+        $('cfgRetries').value = cfg.distribution_max_retries || 3;
+
+        // Update explorer base if needed
+        if (cfg.eth_rpc_configured) {
+            // Config doesn't expose network key directly, keep default
+        }
+    } catch (e) {
+        console.warn('loadConfig:', e);
+    }
 }
 
-function etherscanTx(hash) {
-    return `<a class="tx-link" target="_blank" rel="noopener" href="${EXPLORER_TX_BASE}/${encodeURIComponent(hash)}">${shortAddr(hash)}</a>`;
+async function saveConfig(e) {
+    e.preventDefault();
+    const statusEl = $('settingsStatus');
+    statusEl.textContent = 'Saving…';
+    statusEl.style.color = 'var(--text-muted)';
+    try {
+        const tokenId = Number($('cfgToken').value) || null;
+        const payload = {
+            distribution_mode: document.querySelector('input[name="cfgMode"]:checked').value,
+            distribution_amount: $('cfgAmount').value,
+            distribution_interval_seconds: Number($('cfgInterval').value) || 10,
+            distribution_max_retries: Number($('cfgRetries').value) || 3,
+        };
+        if (tokenId) payload.distribution_token_id = tokenId;
+        await api('PUT', '/config', payload);
+        flash(statusEl, 'Saved');
+    } catch (e) {
+        flash(statusEl, `Error: ${e.message}`, true);
+    }
 }
 
-// ---------- Worker / config ----------
-
+// ---- worker ----
 async function refreshWorker() {
     try {
         const s = await api('GET', '/worker');
-        $('workerError').style.display = 'none';
-        const kpiI = $('kpiInFlight'); if (kpiI) kpiI.textContent = s.in_flight ?? 0;
-        const cells = [
-            ['Status', s.running ? '<span class="dist-pill running">running</span>' : '<span class="dist-pill paused">stopped</span>'],
-            ['Interval', `${s.interval_seconds}s`],
-            ['In flight', s.in_flight],
-            ['Sent (since boot)', s.sent_total],
-            ['Confirmed', s.confirmed_total],
-            ['Failed', s.failed_total],
-            ['Last tick', s.last_tick_at ? new Date(s.last_tick_at).toLocaleTimeString() : '—'],
-            ['Last error', s.last_error ? `<span style="color:var(--accent-danger);">${escapeHtml(s.last_error)}</span>` : '—'],
-        ];
-        $('workerBox').innerHTML = cells.map(([k, v]) =>
-            `<div class="status-cell"><div class="status-label">${k}</div><div class="status-value small">${v}</div></div>`
-        ).join('');
-    } catch (e) {
-        $('workerError').textContent = e.message;
-        $('workerError').style.display = 'block';
-    }
-}
+        const kvEl = $('workerKv');
+        kvEl.innerHTML = `
+            <div class="kv-row"><span class="kv-key">Status</span><span class="kv-val">${s.running ? '<span class="dist-pill running">Running</span>' : '<span class="dist-pill paused">Stopped</span>'}</span></div>
+            <div class="kv-row"><span class="kv-key">Mode</span><span class="kv-val">${escapeHtml(s.mode || '—')}</span></div>
+            <div class="kv-row"><span class="kv-key">Interval</span><span class="kv-val">${s.interval_seconds ? s.interval_seconds + 's' : '—'}</span></div>
+            <div class="kv-row"><span class="kv-key">Sent</span><span class="kv-val">${s.sent_total ?? 0}</span></div>
+            <div class="kv-row"><span class="kv-key">In Flight</span><span class="kv-val">${s.in_flight ?? 0}</span></div>
+            <div class="kv-row"><span class="kv-key">Last Tick</span><span class="kv-val">${s.last_tick_at ? new Date(s.last_tick_at).toLocaleTimeString() : '—'}</span></div>
+        `;
 
-async function refreshConfig() {
-    // Configuration is now displayed on the Settings page; no-op here.
-}
+        // Update KPI tiles
+        $('kpiPending').textContent = s.pending_sends ?? 0;
+        $('kpiConfirmed').textContent = s.confirmed_total ?? 0;
+        $('kpiFailed').textContent = s.failed_total ?? 0;
 
-// ---------- Wallets (read-only on this page; managed in Settings) ----------
-
-async function refreshWallets() {
-    try {
-        const wallets = await api('GET', `/wallets`);
-        WALLETS_CACHE = wallets;
-        const kpiW = $('kpiWallets');
-        if (kpiW) kpiW.textContent = wallets.filter(w => w.is_active).length;
-    } catch (_e) {
-        WALLETS_CACHE = [];
-    }
-}
-
-async function handleWalletAction() { /* removed — see Settings */ }
-function openWalletModal() { /* removed */ }
-function closeWalletModal() { /* removed */ }
-async function submitWallet() { /* removed */ }
-
-// ---------- Campaigns ----------
-
-let TOKENS_CACHE = [];
-let WALLETS_CACHE = [];
-let CURRENT_CAMPAIGN_ID = null;
-let RECIP_OFFSET = 0;
-const RECIP_LIMIT = 50;
-
-async function loadTokens() {
-    try {
-        const tokens = await fetch('/api/airdrop/tokens').then(r => r.json());
-        TOKENS_CACHE = tokens;
-        const sel = $('campToken');
-        sel.innerHTML = tokens.map(t =>
-            `<option value="${t.id}">${escapeHtml(t.symbol)} — ${t.contract_address.slice(0, 8)}…</option>`
-        ).join('');
-    } catch (e) {
-        console.warn('token load failed', e);
-    }
-}
-
-async function refreshCampaigns() {
-    const tbody = $('campaignsTbody');
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color: var(--text-muted); padding: 24px;">Loading…</td></tr>`;
-    try {
-        const campaigns = await api('GET', '/campaigns');
-        const kpiAC = $('kpiActiveCampaigns');
-        if (kpiAC) kpiAC.textContent = campaigns.filter(c => c.status === 'running').length;
-        const kpiC = $('kpiConfirmed');
-        if (kpiC) kpiC.textContent = campaigns.reduce((s, c) => s + ((c.counts && c.counts.confirmed) || 0), 0).toLocaleString();
-        if (!campaigns.length) {
-            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color: var(--text-muted); padding: 24px;">No campaigns yet.</td></tr>`;
-            return;
-        }
-        tbody.innerHTML = campaigns.map(c => {
-            const counts = c.counts || {};
-            const total = counts.total || 0;
-            const done = (counts.confirmed || 0);
-            const pct = total ? Math.round((done / total) * 100) : 0;
-            const senderLabel = (c.sender_mode || 'multi') === 'single' ? 'single' : 'multi';
-            const senderCount = (c.sender_wallet_ids && c.sender_wallet_ids.length)
-                ? `${c.sender_wallet_ids.length} assigned`
-                : 'all active';
-            const confirmActions = [];
-            if (c.status === 'ready' || c.status === 'paused') confirmActions.push(`<button class="row-btn" data-c-action="start" data-id="${c.id}">Start</button>`);
-            if (c.status === 'running') confirmActions.push(`<button class="row-btn" data-c-action="pause" data-id="${c.id}">Pause</button>`);
-            if (c.status === 'draft') confirmActions.push(`<button class="row-btn" data-c-action="build" data-id="${c.id}">Build recipients</button>`);
-            confirmActions.push(`<button class="row-btn" data-c-action="rebuild" data-id="${c.id}">Rebuild</button>`);
-            confirmActions.push(`<button class="row-btn" data-c-action="retry"  data-id="${c.id}">Retry failed</button>`);
-            if (c.dry_run) confirmActions.push(`<button class="row-btn" data-c-action="undry" data-id="${c.id}">Disable dry‑run</button>`);
-            confirmActions.push(`<button class="row-btn" data-c-action="open"  data-id="${c.id}">Open</button>`);
-
-            return `<tr>
-                <td class="mono">${c.id}</td>
-                <td>${escapeHtml(c.name)}</td>
-                <td>${escapeHtml(c.token_symbol || c.token_id)}</td>
-                <td class="mono">${fmtNum(c.amount_per_recipient)}</td>
-                <td>${pill(c.status)}</td>
-                <td>
-                    <div style="display:flex; flex-direction:column; gap:2px;">
-                        <span class="dist-pill ${senderLabel === 'single' ? 'paused' : 'running'}">${senderLabel}</span>
-                        <span style="font-size:10px; color:var(--text-muted);">${senderCount}${c.dry_run ? ' · <span style="color:#fbbf24;">dry‑run</span>' : ''}</span>
-                    </div>
-                </td>
-                <td style="min-width: 160px;">
-                    <div class="progress-bar"><div class="fill" style="width:${pct}%"></div></div>
-                    <div style="font-size: 11px; color: var(--text-muted); margin-top:4px;">
-                        ${done} confirmed / ${total} total · ${counts.failed || 0} failed
-                    </div>
-                </td>
-                <td class="row-actions">${confirmActions.join('')}</td>
-            </tr>`;
-        }).join('');
-    } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="8" class="admin-error">${escapeHtml(e.message)}</td></tr>`;
-    }
-}
-
-async function handleCampaignAction(e) {
-    const btn = e.target.closest('button[data-c-action]');
-    if (!btn) return;
-    const id = btn.dataset.id;
-    const a = btn.dataset.cAction;
-    try {
-        if (a === 'start')   await api('POST', `/campaigns/${id}/start`);
-        else if (a === 'pause') await api('POST', `/campaigns/${id}/pause`);
-        else if (a === 'build' || a === 'rebuild') await api('POST', `/campaigns/${id}/build`);
-        else if (a === 'retry') await api('POST', `/campaigns/${id}/retry-failed`);
-        else if (a === 'undry') {
-            if (!confirm('Disable dry‑run for this campaign? Real transactions will be broadcast when started.')) return;
-            await api('PATCH', `/campaigns/${id}`, { dry_run: false });
-        } else if (a === 'open') {
-            return openCampaignDetail(Number(id));
-        }
-        await refreshCampaigns();
-    } catch (err) {
-        alert(err.message);
-    }
-}
-
-function openCampaignModal() {
-    $('campName').value = '';
-    $('campAmount').value = '';
-    $('campMaxTotal').value = '';
-    $('filtToken').value = '';
-    $('filtFrom').value = '';
-    $('filtTo').value = '';
-    $('filtMinUsd').value = '';
-    $('filtLimit').value = '';
-    $('campDryRun').checked = true;
-    document.querySelectorAll('input[name="campSenderMode"]').forEach(r => { r.checked = (r.value === 'multi'); });
-    renderCampaignWalletPicker();
-    updateAmountHint();
-    $('campFormError').style.display = 'none';
-    $('campaignModal').style.display = 'flex';
-}
-
-function renderCampaignWalletPicker() {
-    const box = $('campWallets');
-    if (!box) return;
-    if (!WALLETS_CACHE.length) {
-        box.innerHTML = `<div style="color:var(--text-muted); font-size:12px;">No sender wallets configured. Add one first — the campaign will fall back to all active wallets if none are assigned.</div>`;
-        return;
-    }
-    box.innerHTML = WALLETS_CACHE.map(w => `
-        <label class="wallet-pick-item">
-            <input type="checkbox" data-wid="${w.id}" ${w.is_active ? '' : 'disabled'}>
-            <div>
-                <div class="addr">${escapeHtml(w.address)}</div>
-                <div style="font-size:11px; color:var(--text-muted);">${escapeHtml(w.label || '')}${w.is_active ? '' : ' · inactive'}</div>
-            </div>
-        </label>
-    `).join('');
-}
-
-function selectedSenderWalletIds() {
-    return Array.from(document.querySelectorAll('#campWallets input[type=checkbox]:checked'))
-        .map(el => Number(el.dataset.wid))
-        .filter(n => Number.isFinite(n));
-}
-
-function updateAmountHint() {
-    const hint = $('campAmountHint');
-    if (!hint) return;
-    const tokenId = Number($('campToken').value);
-    const tok = TOKENS_CACHE.find(t => t.id === tokenId);
-    if (!tok) { hint.textContent = ' '; return; }
-    const min = Math.pow(10, -tok.decimals);
-    hint.innerHTML = `<strong>${escapeHtml(tok.symbol)}</strong> has <strong>${tok.decimals}</strong> decimals · minimum representable unit = <span class="mono">${min.toFixed(tok.decimals)}</span>`;
-}
-function closeCampaignModal() { $('campaignModal').style.display = 'none'; }
-
-async function submitCampaign(e) {
-    e.preventDefault();
-    const err = $('campFormError');
-    err.style.display = 'none';
-    try {
-        const filter = {
-            token_symbol: $('filtToken').value.trim() || null,
-            from_date:    $('filtFrom').value || null,
-            to_date:      $('filtTo').value   || null,
-            min_amount_usd: $('filtMinUsd').value ? Number($('filtMinUsd').value) : null,
-            limit:          $('filtLimit').value  ? Number($('filtLimit').value)  : null,
-            exclude_addresses: [],
-        };
-        Object.keys(filter).forEach(k => filter[k] === null && delete filter[k]);
-        const senderModeEl = document.querySelector('input[name="campSenderMode"]:checked');
-        const payload = {
-            name: $('campName').value.trim(),
-            token_id: Number($('campToken').value),
-            amount_per_recipient: $('campAmount').value,
-            recipient_filter: filter,
-            max_total_amount: $('campMaxTotal').value || null,
-            dry_run: $('campDryRun').checked,
-            sender_mode: senderModeEl ? senderModeEl.value : 'multi',
-            sender_wallet_ids: selectedSenderWalletIds(),
-        };
-        if (!payload.max_total_amount) delete payload.max_total_amount;
-        await api('POST', '/campaigns', payload);
-        closeCampaignModal();
-        await refreshCampaigns();
-    } catch (e2) {
-        err.textContent = e2.message;
-        err.style.display = 'block';
-    }
-}
-
-// ---------- Campaign detail ----------
-
-async function openCampaignDetail(id) {
-    CURRENT_CAMPAIGN_ID = id;
-    RECIP_OFFSET = 0;
-    $('campaignDetailCard').style.display = 'block';
-    try {
-        const c = await api('GET', `/campaigns/${id}`);
-        $('detailTitle').textContent = `Campaign #${c.id}: ${c.name}`;
-        const counts = c.counts || {};
-        $('detailSub').innerHTML =
-            `${escapeHtml(c.token_symbol || '')} · ${fmtNum(c.amount_per_recipient)} per recipient · ${pill(c.status)} · ${c.dry_run ? '<span class="dist-pill draft">dry‑run</span>' : '<span class="dist-pill ready">live</span>'} · ` +
-            `total ${counts.total || 0} (pending ${counts.pending || 0} · sent ${counts.sent || 0} · confirmed ${counts.confirmed || 0} · failed ${counts.failed || 0})`;
-        await refreshRecipients();
-        $('campaignDetailCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } catch (e) {
-        $('detailSub').textContent = e.message;
-    }
-}
-
-function closeCampaignDetail() {
-    CURRENT_CAMPAIGN_ID = null;
-    $('campaignDetailCard').style.display = 'none';
-}
-
-async function refreshRecipients() {
-    if (CURRENT_CAMPAIGN_ID === null) return;
-    const tbody = $('recipientsTbody');
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 24px;">Loading…</td></tr>`;
-    try {
-        const status = $('detailStatusFilter').value;
-        const qp = new URLSearchParams({ limit: String(RECIP_LIMIT), offset: String(RECIP_OFFSET) });
-        if (status) qp.set('status', status);
-        const data = await api('GET', `/campaigns/${CURRENT_CAMPAIGN_ID}/recipients?${qp}`);
-        if (!data.items.length) {
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 24px;">No recipients in this view.</td></tr>`;
+        const errEl = $('workerError');
+        if (s.last_error) {
+            errEl.textContent = s.last_error;
+            errEl.style.display = 'block';
         } else {
-            tbody.innerHTML = data.items.map(r => `
-                <tr>
-                    <td class="mono">${r.id}</td>
-                    <td><span class="addr">${escapeHtml(r.address)}</span></td>
-                    <td class="mono">${fmtNum(r.amount)}</td>
-                    <td>${pill(r.status)}</td>
-                    <td class="mono">${r.attempts}</td>
-                    <td>${r.last_tx_hash ? etherscanTx(r.last_tx_hash) : '—'}</td>
-                    <td class="mono" style="max-width: 280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(r.last_error || '')}">${escapeHtml(r.last_error || '')}</td>
-                </tr>`).join('');
+            errEl.style.display = 'none';
         }
-        const from = data.total === 0 ? 0 : RECIP_OFFSET + 1;
-        const to = Math.min(RECIP_OFFSET + RECIP_LIMIT, data.total);
-        $('recipPageInfo').textContent = `${from}–${to} of ${data.total}`;
-        $('recipPrev').disabled = RECIP_OFFSET <= 0;
-        $('recipNext').disabled = RECIP_OFFSET + RECIP_LIMIT >= data.total;
     } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="7" class="admin-error">${escapeHtml(e.message)}</td></tr>`;
+        $('workerKv').innerHTML = `<div style="color:var(--accent-danger); font-size:12px;">Failed to load worker status: ${escapeHtml(e.message)}</div>`;
     }
 }
 
-// ---------- Wire-up ----------
+// ---- sends log ----
+async function loadSends() {
+    const tbodyEl = $('sendsTbody');
+    tbodyEl.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:24px;">Loading…</td></tr>';
+    try {
+        const qp = new URLSearchParams({
+            limit: String(SENDS_LIMIT),
+            offset: String(SENDS_OFFSET),
+        });
+        if (SENDS_STATUS_FILTER) qp.set('status', SENDS_STATUS_FILTER);
+        if (SENDS_ADDRESS_FILTER) qp.set('to_address', SENDS_ADDRESS_FILTER);
+        const data = await api('GET', `/sends?${qp}`);
+        const items = data.items || [];
 
+        if (items.length === 0) {
+            tbodyEl.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:24px;">No sends found.</td></tr>';
+        } else {
+            tbodyEl.innerHTML = items.map(s => `
+                <tr>
+                    <td><span class="mono" title="${escapeHtml(s.to_address)}">${escapeHtml(s.to_address)}</span></td>
+                    <td><span class="mono" title="${escapeHtml(s.wallet_address || '')}">${shortAddr(s.wallet_address)}</span></td>
+                    <td class="mono">${fmtNum(s.amount)} ${escapeHtml(s.token_symbol || '')}</td>
+                    <td>${pill(s.status)}</td>
+                    <td>${etherscanTx(s.tx_hash)}</td>
+                    <td class="mono">${s.attempts}</td>
+                    <td style="font-size:11px; color:var(--text-secondary);">${s.created_at ? new Date(s.created_at).toLocaleString() : '—'}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Pagination
+        const from = SENDS_OFFSET + 1;
+        const to = Math.min(SENDS_OFFSET + SENDS_LIMIT, data.total);
+        $('sendsPageInfo').textContent = data.total > 0 ? `${from}–${to} of ${data.total}` : '0 results';
+        $('sendsPrev').disabled = SENDS_OFFSET === 0;
+        $('sendsNext').disabled = (SENDS_OFFSET + SENDS_LIMIT) >= data.total;
+    } catch (e) {
+        tbodyEl.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--accent-danger); padding:24px;">${escapeHtml(e.message)}</td></tr>`;
+    }
+}
+
+async function resetSends() {
+    const statusFilter = $('sendsStatusFilter').value;
+    const addressFilter = $('sendsAddressFilter').value.trim();
+    const scopeDesc = addressFilter
+        ? `sends for address ${addressFilter}${statusFilter ? ` with status "${statusFilter}"` : ''}`
+        : statusFilter
+            ? `all "${statusFilter}" sends`
+            : 'ALL sends (except in-flight broadcasts)';
+
+    if (!confirm(`This will delete ${scopeDesc} so they will be re-queued on the next worker tick.\n\nProceed?`)) return;
+
+    try {
+        const body = {};
+        if (addressFilter) body.address = addressFilter;
+        if (statusFilter) body.status = statusFilter; else body.status = 'all';
+        const result = await api('POST', '/sends/reset', body);
+        alert(`Deleted ${result.deleted} send record(s).`);
+        SENDS_OFFSET = 0;
+        await loadSends();
+        await refreshWorker();
+    } catch (e) {
+        alert(`Reset failed: ${e.message}`);
+    }
+}
+
+// ---- init ----
 document.addEventListener('DOMContentLoaded', () => {
+    // Worker controls
     $('workerStartBtn').addEventListener('click', async () => {
-        try { await api('POST', '/worker/start'); await refreshWorker(); }
-        catch (e) { alert(e.message); }
+        try {
+            await api('POST', '/worker/start');
+            await refreshWorker();
+        } catch (e) {
+            $('workerError').textContent = e.message;
+            $('workerError').style.display = 'block';
+        }
     });
     $('workerStopBtn').addEventListener('click', async () => {
-        try { await api('POST', '/worker/stop'); await refreshWorker(); }
-        catch (e) { alert(e.message); }
+        try {
+            await api('POST', '/worker/stop');
+            await refreshWorker();
+        } catch (e) {
+            $('workerError').textContent = e.message;
+            $('workerError').style.display = 'block';
+        }
     });
     $('workerRefreshBtn').addEventListener('click', refreshWorker);
 
-    $('addCampaignBtn').addEventListener('click', openCampaignModal);
-    $('campCancelBtn').addEventListener('click', closeCampaignModal);
-    $('campaignForm').addEventListener('submit', submitCampaign);
-    $('campaignsTbody').addEventListener('click', handleCampaignAction);
-    $('campToken').addEventListener('change', updateAmountHint);
-    const minBtn = $('campAmountMinBtn');
-    if (minBtn) minBtn.addEventListener('click', () => {
-        const tokenId = Number($('campToken').value);
-        const tok = TOKENS_CACHE.find(t => t.id === tokenId);
-        if (!tok) { alert('Pick a token first.'); return; }
-        $('campAmount').value = Math.pow(10, -tok.decimals).toFixed(tok.decimals);
+    // Settings form
+    $('settingsForm').addEventListener('submit', saveConfig);
+
+    // Sends log controls
+    $('sendsRefreshBtn').addEventListener('click', () => { SENDS_OFFSET = 0; loadSends(); });
+    $('sendsStatusFilter').addEventListener('change', (e) => {
+        SENDS_STATUS_FILTER = e.target.value;
+        SENDS_OFFSET = 0;
+        loadSends();
+    });
+    $('sendsAddressFilter').addEventListener('input', debounce((e) => {
+        SENDS_ADDRESS_FILTER = e.target.value.trim();
+        SENDS_OFFSET = 0;
+        loadSends();
+    }, 400));
+    $('sendsResetBtn').addEventListener('click', resetSends);
+    $('sendsPrev').addEventListener('click', () => {
+        SENDS_OFFSET = Math.max(0, SENDS_OFFSET - SENDS_LIMIT);
+        loadSends();
+    });
+    $('sendsNext').addEventListener('click', () => {
+        SENDS_OFFSET += SENDS_LIMIT;
+        loadSends();
     });
 
-    $('detailRefreshBtn').addEventListener('click', () => { RECIP_OFFSET = 0; refreshRecipients(); });
-    $('detailCloseBtn').addEventListener('click', closeCampaignDetail);
-    $('detailStatusFilter').addEventListener('change', () => { RECIP_OFFSET = 0; refreshRecipients(); });
-    $('recipPrev').addEventListener('click', () => { RECIP_OFFSET = Math.max(0, RECIP_OFFSET - RECIP_LIMIT); refreshRecipients(); });
-    $('recipNext').addEventListener('click', () => { RECIP_OFFSET += RECIP_LIMIT; refreshRecipients(); });
-
-    loadConfig();
+    // Initial load
+    loadTokens().then(() => loadConfig());
+    loadWalletsKpi();
     refreshWorker();
-    refreshWallets();
-    loadTokens().then(refreshCampaigns);
+    loadSends();
 
-    // Periodic refresh of worker + campaigns while page is open.
+    // Auto-refresh
     setInterval(refreshWorker, 5000);
-    setInterval(refreshCampaigns, 8000);
-    setInterval(() => { if (CURRENT_CAMPAIGN_ID !== null) refreshRecipients(); }, 8000);
+    setInterval(loadSends, 8000);
 });

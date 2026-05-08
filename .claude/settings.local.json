@@ -26,7 +26,9 @@
       "mcp__playwright__browser_console_messages",
       "mcp__playwright__browser_evaluate",
       "Bash(Start-Sleep -Seconds 3)",
-      "Bash(Invoke-RestMethod -Uri \"http://127.0.0.1:8000/api/health\" -Method GET)"
+      "Bash(Invoke-RestMethod -Uri \"http://127.0.0.1:8000/api/health\" -Method GET)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Sajid\\\\Documents\\\\wallet-explorer\" -Directory)",
+      "Bash(xargs grep -l \"campaign\\\\|distribution\")"
     ]
   }
 }

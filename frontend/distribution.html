@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Airdrop — Airdrop Suite</title>
-    <link rel="stylesheet" href="/static/css/styles.css?v=11">
-    <link rel="stylesheet" href="/static/css/admin.css?v=5">
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="/static/css/admin.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -58,7 +58,7 @@
     <header class="app-header">
         <div class="header-title-group">
             <div class="header-page-title">Airdrop</div>
-            <div class="header-breadcrumb"><span>Home</span><span>›</span><span>Airdrop</span><span>›</span><span>Campaigns</span></div>
+            <div class="header-breadcrumb"><span>Home</span><span>›</span><span>Airdrop</span><span>›</span><span>Sends</span></div>
         </div>
         <div></div>
     </header>
@@ -78,188 +78,139 @@
                         <div class="kpi-value" id="kpiWallets">—</div>
                     </div>
                 </div>
-                <div class="kpi-tile kpi-green">
-                    <div class="kpi-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l18-9-9 18-2-7-7-2z"/></svg>
-                    </div>
-                    <div class="kpi-body">
-                        <div class="kpi-label">Active Campaigns</div>
-                        <div class="kpi-value" id="kpiActiveCampaigns">—</div>
-                    </div>
-                </div>
-                <div class="kpi-tile kpi-violet">
-                    <div class="kpi-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                    </div>
-                    <div class="kpi-body">
-                        <div class="kpi-label">Confirmed Transfers</div>
-                        <div class="kpi-value" id="kpiConfirmed">—</div>
-                    </div>
-                </div>
                 <div class="kpi-tile kpi-amber">
                     <div class="kpi-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
                     </div>
                     <div class="kpi-body">
-                        <div class="kpi-label">In Flight</div>
-                        <div class="kpi-value" id="kpiInFlight">—</div>
+                        <div class="kpi-label">Pending</div>
+                        <div class="kpi-value" id="kpiPending">—</div>
+                    </div>
+                </div>
+                <div class="kpi-tile kpi-green">
+                    <div class="kpi-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    </div>
+                    <div class="kpi-body">
+                        <div class="kpi-label">Confirmed</div>
+                        <div class="kpi-value" id="kpiConfirmed">—</div>
+                    </div>
+                </div>
+                <div class="kpi-tile kpi-violet">
+                    <div class="kpi-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                    </div>
+                    <div class="kpi-body">
+                        <div class="kpi-label">Failed</div>
+                        <div class="kpi-value" id="kpiFailed">—</div>
                     </div>
                 </div>
             </div>
 
-            <!-- WORKER -->
-            <div class="card admin-card admin-card-wide">
+            <!-- WORKER CARD -->
+            <div class="card admin-card">
                 <h2 class="admin-card-title">Worker</h2>
                 <p class="admin-card-sub">Background loop that signs and broadcasts ERC‑20 transfers.</p>
-                <div id="workerBox" class="kv-grid"></div>
-                <div style="display:flex; gap:8px; margin-top:16px;">
+                <div class="kv-grid" id="workerKv"></div>
+                <div style="display:flex; gap:8px; margin-top:16px; flex-wrap:wrap;">
                     <button id="workerStartBtn" class="btn btn-primary" style="font-size:12px;">Start</button>
-                    <button id="workerStopBtn"  class="btn btn-secondary" style="font-size:12px;">Stop</button>
+                    <button id="workerStopBtn" class="btn btn-secondary" style="font-size:12px;">Stop</button>
                     <button id="workerRefreshBtn" class="btn btn-secondary" style="font-size:12px;">Refresh</button>
                 </div>
-                <div id="workerError" class="admin-error" style="display:none;"></div>
+                <div id="workerError" class="admin-error" style="display:none; margin-top:12px;"></div>
             </div>
 
-            <!-- CAMPAIGNS -->
+            <!-- SETTINGS CARD -->
+            <div class="card admin-card">
+                <h2 class="admin-card-title">Settings</h2>
+                <p class="admin-card-sub">Configure what the worker sends and how.</p>
+                <form id="settingsForm">
+                    <div class="input-group">
+                        <label for="cfgToken">Token to airdrop</label>
+                        <select id="cfgToken" class="wallet-input">
+                            <option value="">— select token —</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="cfgAmount">Amount per send (token units)</label>
+                        <input type="number" id="cfgAmount" class="wallet-input" min="0" step="any" placeholder="1.0">
+                    </div>
+                    <div class="input-group">
+                        <label>Distribution mode</label>
+                        <div style="display:flex; gap:16px; align-items:center; flex-wrap:wrap; margin-top:4px;">
+                            <label style="display:flex; align-items:center; gap:6px; font-weight:400; font-size:13px;">
+                                <input type="radio" name="cfgMode" value="all" checked>
+                                All Wallets — every active sender sends to each receiver
+                            </label>
+                            <label style="display:flex; align-items:center; gap:6px; font-weight:400; font-size:13px;">
+                                <input type="radio" name="cfgMode" value="random">
+                                Random Wallet — one randomly chosen sender per receiver
+                            </label>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label for="cfgInterval">Worker interval (seconds)</label>
+                        <input type="number" id="cfgInterval" class="wallet-input" min="1" step="1" placeholder="10">
+                    </div>
+                    <div class="input-group">
+                        <label for="cfgRetries">Max retries per send</label>
+                        <input type="number" id="cfgRetries" class="wallet-input" min="1" step="1" placeholder="3">
+                    </div>
+                    <div id="settingsStatus" style="font-size:12px; color:var(--accent-success); min-height:18px;"></div>
+                    <div style="display:flex; gap:8px; margin-top:8px;">
+                        <button type="submit" class="btn btn-primary" style="font-size:12px;">Save Settings</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- SEND LOG TABLE -->
             <div class="card admin-card admin-card-wide">
                 <div class="admin-card-header-row">
                     <div>
-                        <h2 class="admin-card-title">Campaigns</h2>
-                        <p class="admin-card-sub">Each campaign sends a fixed token amount to a recipient set built from Phase 1 data.</p>
+                        <h2 class="admin-card-title">Send Log</h2>
+                        <p class="admin-card-sub">History of all airdrop sends enqueued by the worker.</p>
                     </div>
-                    <button id="addCampaignBtn" class="btn btn-primary" style="font-size:12px; padding:8px 14px;">+ New Campaign</button>
-                </div>
-                <div class="table-wrapper">
-                    <table id="campaignsTable">
-                        <thead>
-                            <tr>
-                                <th>#</th><th>Name</th><th>Token</th><th>Per recipient</th>
-                                <th>Status</th><th>Mode</th><th>Progress</th>
-                                <th style="text-align:right;">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="campaignsTbody">
-                            <tr><td colspan="8" style="text-align:center; color: var(--text-muted); padding: 24px;">Loading…</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- CAMPAIGN DETAIL (shown when one is selected) -->
-            <div id="campaignDetailCard" class="card admin-card admin-card-wide" style="display:none;">
-                <div class="admin-card-header-row">
-                    <div>
-                        <h2 class="admin-card-title" id="detailTitle">Campaign</h2>
-                        <p class="admin-card-sub" id="detailSub">—</p>
-                    </div>
-                    <div style="display:flex; gap:8px;">
-                        <select id="detailStatusFilter" class="wallet-input" style="min-width: 140px;">
+                    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                        <select id="sendsStatusFilter" class="wallet-input" style="min-width:130px;">
                             <option value="">All statuses</option>
                             <option value="pending">pending</option>
-                            <option value="sending">sending</option>
-                            <option value="sent">sent</option>
+                            <option value="broadcast">broadcast</option>
                             <option value="confirmed">confirmed</option>
                             <option value="failed">failed</option>
                         </select>
-                        <button id="detailRefreshBtn" class="btn btn-secondary" style="font-size:12px;">Refresh</button>
-                        <button id="detailCloseBtn" class="btn btn-secondary" style="font-size:12px;">Close</button>
+                        <input type="text" id="sendsAddressFilter" class="wallet-input" placeholder="Filter by address…" style="min-width:200px;">
+                        <button id="sendsResetBtn" class="btn btn-secondary" style="font-size:12px; color:var(--accent-danger);">Reset Sends</button>
+                        <button id="sendsRefreshBtn" class="btn btn-secondary" style="font-size:12px;">Refresh</button>
                     </div>
                 </div>
                 <div class="table-wrapper">
-                    <table id="recipientsTable">
+                    <table id="sendsTable">
                         <thead>
                             <tr>
-                                <th>#</th><th>Address</th><th>Amount</th><th>Status</th>
-                                <th>Attempts</th><th>Tx</th><th>Last Error</th>
+                                <th>Receiving Address</th>
+                                <th>Sender Wallet</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Tx Hash</th>
+                                <th>Attempts</th>
+                                <th>Created</th>
                             </tr>
                         </thead>
-                        <tbody id="recipientsTbody">
-                            <tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 24px;">Loading…</td></tr>
+                        <tbody id="sendsTbody">
+                            <tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:24px;">Loading…</td></tr>
                         </tbody>
                     </table>
                 </div>
                 <div class="pagination-row">
-                    <button id="recipPrev" class="btn btn-secondary" style="font-size:12px;">Prev</button>
-                    <span id="recipPageInfo" style="color: var(--text-secondary); font-size:12px;"></span>
-                    <button id="recipNext" class="btn btn-secondary" style="font-size:12px;">Next</button>
+                    <button id="sendsPrev" class="btn btn-secondary" style="font-size:12px;">Prev</button>
+                    <span id="sendsPageInfo" style="color:var(--text-secondary); font-size:12px;"></span>
+                    <button id="sendsNext" class="btn btn-secondary" style="font-size:12px;">Next</button>
                 </div>
             </div>
+
         </div>
     </main>
 
-    <!-- ===== NEW CAMPAIGN MODAL ===== -->
-    <div id="campaignModal" class="modal-backdrop" style="display:none;">
-        <div class="modal-card">
-            <h3>New Campaign</h3>
-            <form id="campaignForm">
-                <div class="input-group">
-                    <label for="campName">Name</label>
-                    <input type="text" id="campName" class="wallet-input" required maxlength="128" placeholder="USDC Q2 distribution">
-                </div>
-                <div class="input-group">
-                    <label for="campToken">Token</label>
-                    <select id="campToken" class="wallet-input" required></select>
-                </div>
-                <div class="input-group">
-                    <label for="campAmount">Amount per recipient
-                        <span style="color:var(--text-muted); font-weight:400; font-size:11px;">(decimal, in token units)</span>
-                    </label>
-                    <div style="display:flex; gap:8px; align-items:stretch;">
-                        <input type="number" id="campAmount" class="wallet-input" required min="0" step="any" placeholder="1.0" style="flex:1;">
-                        <button type="button" id="campAmountMinBtn" class="btn btn-secondary" title="Set to the minimum representable unit for the selected token (1 / 10^decimals)" style="font-size:11px; padding:0 12px; white-space:nowrap;">Min unit</button>
-                    </div>
-                    <div id="campAmountHint" style="font-size:11px; color:var(--text-muted); margin-top:6px;">&nbsp;</div>
-                </div>
-                <div class="input-group">
-                    <label for="campMaxTotal">Max total amount (optional cap)</label>
-                    <input type="number" id="campMaxTotal" class="wallet-input" min="0" step="any" placeholder="leave empty for no cap">
-                </div>
-
-                <h4 style="margin-top:16px; font-size:12px; text-transform:uppercase; color:var(--text-muted); letter-spacing:0.5px;">Sender wallets</h4>
-                <div class="input-group">
-                    <label>Sender mode</label>
-                    <div style="display:flex; gap:14px; align-items:center; flex-wrap:wrap;">
-                        <label style="display:flex; align-items:center; gap:6px; font-weight:400; font-size:13px;">
-                            <input type="radio" name="campSenderMode" value="multi" checked> Multiple (parallel)
-                        </label>
-                        <label style="display:flex; align-items:center; gap:6px; font-weight:400; font-size:13px;">
-                            <input type="radio" name="campSenderMode" value="single"> Single
-                        </label>
-                    </div>
-                </div>
-                <div class="input-group">
-                    <label for="campWallets">Assigned wallets <span style="color:var(--text-muted); font-weight:400; font-size:11px;">(none selected = use all active)</span></label>
-                    <div id="campWallets" class="wallet-pick-list">
-                        <div style="color:var(--text-muted); font-size:12px;">Loading wallets…</div>
-                    </div>
-                </div>
-
-                <h4 style="margin-top:16px; font-size:12px; text-transform:uppercase; color:var(--text-muted); letter-spacing:0.5px;">Recipient filter (from Phase 1 data)</h4>
-                <div class="input-group">
-                    <label for="filtToken">Filter: token symbol (optional)</label>
-                    <input type="text" id="filtToken" class="wallet-input" placeholder="USDT">
-                </div>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-                    <div class="input-group"><label for="filtFrom">From date (UTC)</label><input type="date" id="filtFrom" class="wallet-input"></div>
-                    <div class="input-group"><label for="filtTo">To date (UTC)</label><input type="date" id="filtTo" class="wallet-input"></div>
-                </div>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-                    <div class="input-group"><label for="filtMinUsd">Min amount USD</label><input type="number" id="filtMinUsd" class="wallet-input" min="0" step="1"></div>
-                    <div class="input-group"><label for="filtLimit">Recipient limit</label><input type="number" id="filtLimit" class="wallet-input" min="1" step="1"></div>
-                </div>
-                <div class="input-group" style="flex-direction:row; align-items:center; gap:8px;">
-                    <input type="checkbox" id="campDryRun" checked>
-                    <label for="campDryRun" style="margin:0;">Dry run (build recipient list but don't send)</label>
-                </div>
-                <div id="campFormError" class="admin-error" style="display:none;"></div>
-                <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary" id="campCancelBtn">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Create</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <script src="/static/js/distribution.js?v=3"></script>
+    <script src="/static/js/distribution.js"></script>
 </body>
 </html>

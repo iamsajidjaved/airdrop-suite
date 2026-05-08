@@ -245,117 +245,68 @@ class DistributionWalletOut(BaseModel):
     balances_updated_at: Optional[datetime] = None
 
 
-# ----- Campaigns -----
-
-class RecipientFilter(BaseModel):
-    """Filter applied against `airdrop_transactions` when building recipients."""
-    token_symbol: Optional[str] = None
-    from_date: Optional[str] = Field(None, description="YYYY-MM-DD UTC, inclusive")
-    to_date: Optional[str] = Field(None, description="YYYY-MM-DD UTC, inclusive")
-    min_amount_usd: Optional[float] = Field(None, ge=0)
-    limit: Optional[int] = Field(None, ge=1, le=1_000_000)
-    exclude_addresses: list[str] = Field(default_factory=list)
-
-    @field_validator("token_symbol")
-    @classmethod
-    def _upper(cls, v):
-        return v.strip().upper() if v else v
-
-    @field_validator("exclude_addresses")
-    @classmethod
-    def _norm_excludes(cls, v):
-        return [_norm_address(a) for a in (v or [])]
-
-
-class DistributionCampaignCreate(BaseModel):
-    name: str = Field(..., min_length=1, max_length=128)
-    token_id: int
-    amount_per_recipient: Decimal = Field(..., gt=0)
-    recipient_filter: RecipientFilter = Field(default_factory=RecipientFilter)
-    max_total_amount: Optional[Decimal] = Field(None, gt=0)
-    dry_run: bool = True
-    sender_mode: Literal["single", "multi"] = "multi"
-    # If empty, the worker uses all active sender wallets (legacy behavior).
-    # If non-empty, only these wallets are used; in single-sender mode only the
-    # first id (sorted asc) actually sends.
-    sender_wallet_ids: list[int] = Field(default_factory=list)
-
-
-class DistributionCampaignOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-    id: int
-    name: str
-    token_id: int
-    token_symbol: Optional[str] = None
-    amount_per_recipient: Decimal
-    network: str
-    status: str
-    dry_run: bool
-    sender_mode: str = "multi"
-    sender_wallet_ids: list[int] = Field(default_factory=list)
-    recipient_filter: dict
-    max_total_amount: Optional[Decimal] = None
-    created_at: datetime
-    started_at: Optional[datetime] = None
-    finished_at: Optional[datetime] = None
-    # Progress counters (populated by the router).
-    counts: Optional[dict[str, int]] = None
-
-
-class CampaignBuildResult(BaseModel):
-    campaign_id: int
-    inserted: int
-    total_recipients: int
-
-
-# ----- Recipients -----
-
-class DistributionRecipientOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-    id: int
-    campaign_id: int
-    address: str
-    amount: Decimal
-    status: str
-    assigned_wallet_id: Optional[int] = None
-    attempts: int
-    last_error: Optional[str] = None
-    created_at: datetime
-    updated_at: datetime
-    # Latest broadcast tx hash, if any.
-    last_tx_hash: Optional[str] = None
-
-
-class DistributionRecipientListResponse(BaseModel):
-    total: int
-    limit: int
-    offset: int
-    items: list[DistributionRecipientOut]
-
-
 # ----- Worker -----
 
 class DistributionWorkerState(BaseModel):
     enabled: bool
     running: bool
     interval_seconds: int
+    mode: str = "all"
     last_tick_at: Optional[str] = None
     last_error: Optional[str] = None
     in_flight: int = 0
     sent_total: int = 0
     confirmed_total: int = 0
     failed_total: int = 0
+    pending_sends: int = 0
 
 
-# ----- Config (distribution-side) -----
+# ----- Config (DB-backed) -----
 
 class DistributionConfigOut(BaseModel):
+    distribution_mode: str
+    distribution_token_id: Optional[int] = None
+    distribution_amount: str
+    distribution_interval_seconds: int
+    distribution_max_retries: int
     eth_rpc_configured: bool
     kek_configured: bool
-    admin_token_required: bool
-    max_gas_price_gwei: float
-    per_wallet_daily_cap: float
-    max_inflight: int
-    receipt_poll_seconds: int
-    max_retries_per_recipient: int
-    network: str
+
+
+class DistributionConfigUpdate(BaseModel):
+    distribution_mode: Optional[Literal["all", "random"]] = None
+    distribution_token_id: Optional[int] = None
+    distribution_amount: Optional[str] = None
+    distribution_interval_seconds: Optional[int] = Field(None, ge=1)
+    distribution_max_retries: Optional[int] = Field(None, ge=1)
+
+
+# ----- Sends log -----
+
+class AirdropSendOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    to_address: str
+    token_id: int
+    token_symbol: Optional[str] = None
+    wallet_id: int
+    wallet_address: Optional[str] = None
+    amount: Decimal
+    tx_hash: Optional[str] = None
+    status: str
+    attempts: int
+    last_error: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class AirdropSendListResponse(BaseModel):
+    total: int
+    limit: int
+    offset: int
+    items: list[AirdropSendOut]
+
+
+class SendsResetRequest(BaseModel):
+    address: Optional[str] = None
+    status: Optional[Literal["failed", "all"]] = None

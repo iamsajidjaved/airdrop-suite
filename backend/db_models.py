@@ -124,79 +124,20 @@ class DistributionWallet(Base):
     )
 
 
-class DistributionCampaign(Base):
-    __tablename__ = "distribution_campaigns"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(String(128), nullable=False)
-    token_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("airdrop_tokens.id", ondelete="RESTRICT"), nullable=False
-    )
-    amount_per_recipient: Mapped[Decimal] = mapped_column(Numeric(38, 18), nullable=False)
-    network: Mapped[str] = mapped_column(String(32), nullable=False, default="ethereum", server_default="ethereum")
-    status: Mapped[str] = mapped_column(String(32), nullable=False, default="draft", server_default="draft")
-    dry_run: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
-    # "multi" → fan-out across every assigned/active wallet; "single" → use only one
-    # wallet (the first assigned/active by id) for the whole campaign.
-    sender_mode: Mapped[str] = mapped_column(
-        String(16), nullable=False, default="multi", server_default="multi"
-    )
-    recipient_filter: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default="{}")
-    max_total_amount: Mapped[Optional[Decimal]] = mapped_column(Numeric(38, 18), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
-    )
-    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-
-    token: Mapped[AirdropToken] = relationship(lazy="joined")
-    recipients: Mapped[list["DistributionRecipient"]] = relationship(
-        back_populates="campaign", cascade="all, delete-orphan", passive_deletes=True
-    )
-
-    __table_args__ = (Index("ix_dist_campaign_status", "status"),)
-
-
-class DistributionCampaignWallet(Base):
-    """Join table assigning specific sender wallets to a campaign.
-
-    Empty assignment = fall back to all active wallets (legacy behavior).
-    """
-
-    __tablename__ = "distribution_campaign_wallets"
-
-    campaign_id: Mapped[int] = mapped_column(
-        Integer,
-        ForeignKey("distribution_campaigns.id", ondelete="CASCADE"),
-        primary_key=True,
-    )
-    wallet_id: Mapped[int] = mapped_column(
-        Integer,
-        ForeignKey("distribution_wallets.id", ondelete="CASCADE"),
-        primary_key=True,
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
-    )
-
-    __table_args__ = (
-        Index("ix_dist_campaign_wallets_wallet", "wallet_id"),
-    )
-
-
-class DistributionRecipient(Base):
-    __tablename__ = "distribution_recipients"
+class AirdropSend(Base):
+    __tablename__ = "airdrop_sends"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    campaign_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("distribution_campaigns.id", ondelete="CASCADE"), nullable=False
+    to_address: Mapped[str] = mapped_column(String(64), nullable=False)
+    token_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("airdrop_tokens.id", ondelete="CASCADE"), nullable=False
     )
-    address: Mapped[str] = mapped_column(String(64), nullable=False)
+    wallet_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("distribution_wallets.id", ondelete="RESTRICT"), nullable=False
+    )
     amount: Mapped[Decimal] = mapped_column(Numeric(38, 18), nullable=False)
-    status: Mapped[str] = mapped_column(String(32), nullable=False, default="pending", server_default="pending")
-    assigned_wallet_id: Mapped[Optional[int]] = mapped_column(
-        Integer, ForeignKey("distribution_wallets.id", ondelete="SET NULL"), nullable=True
-    )
+    tx_hash: Mapped[Optional[str]] = mapped_column(String(80), nullable=True, unique=True)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending", server_default="pending")
     attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     last_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
@@ -206,40 +147,13 @@ class DistributionRecipient(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
     )
 
-    campaign: Mapped[DistributionCampaign] = relationship(back_populates="recipients")
+    token: Mapped["AirdropToken"] = relationship(lazy="joined")
+    wallet: Mapped["DistributionWallet"] = relationship(lazy="joined")
 
     __table_args__ = (
-        UniqueConstraint("campaign_id", "address", name="uq_dist_recipient_campaign_address"),
-        Index("ix_dist_recipient_campaign_status", "campaign_id", "status"),
-    )
-
-
-class DistributionTransaction(Base):
-    __tablename__ = "distribution_transactions"
-
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    recipient_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("distribution_recipients.id", ondelete="CASCADE"), nullable=False
-    )
-    wallet_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("distribution_wallets.id", ondelete="RESTRICT"), nullable=False
-    )
-    nonce: Mapped[int] = mapped_column(BigInteger, nullable=False)
-    tx_hash: Mapped[Optional[str]] = mapped_column(String(80), nullable=True, unique=True)
-    max_fee_wei: Mapped[Optional[Decimal]] = mapped_column(Numeric(38, 0), nullable=True)
-    max_priority_wei: Mapped[Optional[Decimal]] = mapped_column(Numeric(38, 0), nullable=True)
-    gas_used: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
-    block_number: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
-    status: Mapped[str] = mapped_column(String(32), nullable=False, default="broadcast", server_default="broadcast")
-    broadcast_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
-    )
-    confirmed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    raw_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-
-    __table_args__ = (
-        Index("ix_dist_tx_recipient", "recipient_id"),
-        Index("ix_dist_tx_status", "status"),
+        UniqueConstraint("to_address", "wallet_id", name="uq_airdrop_sends_address_wallet"),
+        Index("ix_airdrop_sends_to_address", "to_address"),
+        Index("ix_airdrop_sends_status", "status"),
     )
 
 

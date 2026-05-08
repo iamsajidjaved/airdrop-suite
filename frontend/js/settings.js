@@ -387,30 +387,8 @@
     $("adminTokenSave").addEventListener("click", () => {
         setAdminToken($("adminTokenInput").value.trim());
         flash($("adminTokenStatus"), "Saved");
-        loadConfig();
         loadWallets();
     });
-
-    async function loadConfig() {
-        try {
-            const c = await distApi("GET", "/config");
-            const cells = [
-                ["ETH RPC", c.eth_rpc_configured ? '<span class="dist-pill confirmed">configured</span>' : '<span class="dist-pill failed">missing</span>'],
-                ["KEK", c.kek_configured ? '<span class="dist-pill confirmed">configured</span>' : '<span class="dist-pill failed">missing</span>'],
-                ["Admin auth", c.admin_token_required ? '<span class="dist-pill running">enabled</span>' : '<span class="dist-pill draft">disabled</span>'],
-                ["Max gas (gwei)", fmtNum(c.max_gas_price_gwei, 2)],
-                ["Per-wallet daily cap", c.per_wallet_daily_cap ? fmtNum(c.per_wallet_daily_cap) : "unlimited"],
-                ["Max in-flight", c.max_inflight],
-                ["Receipt poll", `${c.receipt_poll_seconds}s`],
-                ["Max retries", c.max_retries_per_recipient],
-            ];
-            $("configBox").innerHTML = cells.map(([k, v]) =>
-                `<div class="status-cell"><div class="status-label">${k}</div><div class="status-value small">${v}</div></div>`
-            ).join("");
-        } catch (e) {
-            $("configBox").innerHTML = `<div class="admin-error">${escapeHtml(e.message)}</div>`;
-        }
-    }
 
     // =====================================================================
     // FILTERS — quality filter settings + address blocklist
@@ -583,7 +561,7 @@
                 await loadBlocklist(0);
             }
         }));
-        await Promise.all([loadThreshold(), loadTokens(), loadWallets(), loadConfig(), loadFilters()]);
+        await Promise.all([loadThreshold(), loadTokens(), loadWallets(), loadFilters()]);
         if ((window.location.hash || "").replace(/^#/, "") === "filters" && !blocklistLoaded) {
             blocklistLoaded = true;
             await loadBlocklist(0);
