@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # The airdrop transaction scanner runs ONLY when the operator clicks
+    # The airdrop Scanner runs ONLY when the operator clicks
     # "Run Scan" in the admin UI (POST /api/airdrop/monitor/run). No
     # background loop, cron, or scheduled task is started on boot.
     # Distribution worker is opt-in (default off). Start only when explicitly enabled.

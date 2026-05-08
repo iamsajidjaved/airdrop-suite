@@ -1,11 +1,11 @@
 # Wallet Explorer
 
-A multi-network cryptocurrency wallet explorer with a built-in **Transaction Scanner** that watches ERC-20 token contracts (USDT, USDC, …) for transfers ≥ a configurable USD threshold and stores them in PostgreSQL.
+A multi-network cryptocurrency wallet explorer with a built-in **Scanner** that watches ERC-20 token contracts (USDT, USDC, …) for transfers ≥ a configurable USD threshold and stores them in PostgreSQL.
 
 ## Features
 
 - **Wallet lookup** — live, stateless lookup of ETH / ERC-20 transactions via Etherscan and TRX / TRC-20 via TronGrid.
-- **Transaction Scanner** — manually triggered scan of configured ERC-20 tokens for transfers ≥ a configurable USD threshold (default **$500**). Deduplicated and persisted to Postgres.
+- **Scanner** — manually triggered scan of configured ERC-20 tokens for transfers ≥ a configurable USD threshold (default **$500**). Deduplicated and persisted to Postgres.
 - **Mainnet ↔ Sepolia switch** — pick the active network from the header dropdown. Each token is bound to a network; the scanner uses the matching Etherscan v2 chain id automatically.
 - **Token CRUD from the UI** — add, edit, enable/disable, delete tokens. Symbol, contract, decimals, network all configurable. No hard-coded token list.
 - **Quality filter** — drops contracts, aggregators, dormant singletons, and blocklisted addresses.
@@ -38,7 +38,7 @@ Or use `start.ps1` / `start.bat` — they wrap `uv sync` + uvicorn. Run `alembic
 Open:
 - `http://127.0.0.1:8000/` — wallet input
 - `http://127.0.0.1:8000/explorer` — transaction dashboard
-- `http://127.0.0.1:8000/admin/airdrop` — **Transaction Scanner** admin
+- `http://127.0.0.1:8000/admin/airdrop` — **Scanner** admin
 - `http://127.0.0.1:8000/admin/distribution` — distribution / campaigns admin
 - `http://127.0.0.1:8000/docs` — auto-generated OpenAPI docs
 
@@ -60,9 +60,9 @@ Distribution & quality (only if you use the on-chain sender):
 - `AIRDROP_ADMIN_TOKEN` — shared secret required by `X-Admin-Token` on every write endpoint. Leave empty to disable auth in local dev.
 - `DISTRIBUTION_WORKER_ENABLED` (default `false`) — opt-in distribution sender
 
-> **No scheduler / no cron.** The transaction scanner runs **only** when you click **Run Scan** in the admin UI (or hit `POST /api/airdrop/monitor/run`).
+> **No scheduler / no cron.** The Scanner runs **only** when you click **Run Scan** in the admin UI (or hit `POST /api/airdrop/monitor/run`).
 
-## How the Transaction Scanner works
+## How the Scanner works
 
 1. Open `/admin/airdrop`.
 2. Pick the active network (Ethereum Mainnet / Sepolia Testnet) in the header.
@@ -95,7 +95,7 @@ A funded Sepolia ETH wallet is only needed if you intend to broadcast distributi
 - `POST /api/validate-wallet`
 - `GET /api/transactions/{address}`
 
-**Transaction Scanner:**
+**Scanner:**
 - `POST /api/airdrop/monitor/run?network=ethereum` — manual scan (only when called)
 - `GET /api/airdrop/status`
 - `GET /api/airdrop/networks`
@@ -173,7 +173,7 @@ wallet-explorer/
 ├── frontend/
 │   ├── index.html             wallet input
 │   ├── explorer.html          wallet transaction dashboard
-│   ├── admin.html             Transaction Scanner admin
+│   ├── admin.html             Scanner admin
 │   ├── distribution.html      distribution admin
 │   ├── css/                   styles.css, admin.css
 │   └── js/                    wallet.js, explorer.js, admin.js, distribution.js

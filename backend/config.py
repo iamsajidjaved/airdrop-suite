@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     # Token list and threshold live in the database (airdrop_tokens / airdrop_config tables).
     airdrop_page_size: int = 1000
 
-    # Background scheduler is intentionally disabled. The transaction scanner
+    # Background scheduler is intentionally disabled. The Scanner
     # runs ONLY when the operator clicks "Run Scan" in the admin UI (or hits
     # POST /api/airdrop/monitor/run). No cron, no auto-loop.
 

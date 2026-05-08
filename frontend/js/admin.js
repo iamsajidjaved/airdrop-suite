@@ -1,4 +1,4 @@
-/* Transaction Scanner — KPI strip, scanner status, qualifying-transactions table.
+/* Scanner — KPI strip, scanner status, qualifying-transactions table.
  * Threshold + token management have moved to the Settings page.
  */
 (() => {
