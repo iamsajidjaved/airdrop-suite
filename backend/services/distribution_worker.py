@@ -18,7 +18,7 @@ import logging
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from typing import Optional
 
 from eth_account import Account
@@ -154,8 +154,8 @@ class DistributionWorker:
 
         try:
             token_id = int(token_id_raw)
-            amount = Decimal(cfg.get("distribution_amount", "1.0"))
-        except (ValueError, TypeError) as e:
+            amount = Decimal(cfg.get("distribution_amount") or "1.0")
+        except (ValueError, TypeError, InvalidOperation) as e:
             logger.warning("Invalid distribution config: %s", e)
             return
 
