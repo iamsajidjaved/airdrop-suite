@@ -1,7 +1,6 @@
 """Distribution API endpoints (Phase 2)."""
 from __future__ import annotations
 
-import asyncio
 import logging
 from typing import Optional
 
@@ -14,7 +13,6 @@ from backend.auth import require_admin
 from backend.config import NETWORKS, settings
 from backend.db import get_session
 from backend.db_models import (
-    AirdropToken,
     DistributionCampaign,
     DistributionWallet,
 )
@@ -33,11 +31,6 @@ from backend.models import (
 from backend.services import distribution_service as dist
 from backend.services.crypto import CryptoUnavailable
 from backend.services.distribution_worker import worker as distribution_worker
-from backend.services.web3_client import (
-    Web3Unavailable,
-    get_eth_balance,
-    get_token_balance,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -47,71 +40,14 @@ router = APIRouter(prefix="/api/distribution", tags=["distribution"])
 # ---------------- Wallets ----------------
 
 @router.get("/wallets", response_model=list[DistributionWalletOut])
-async def list_wallets(
-    include_balances: bool = Query(False),
-    session: AsyncSession = Depends(get_session),
-):
+async def list_wallets(session: AsyncSession = Depends(get_session)):
+    """Return wallets with their cached balances.
+
+    Balances are populated on wallet creation and refreshed on demand via
+    ``POST /wallets/{wallet_id}/refresh`` — this endpoint never hits the RPC.
+    """
     wallets = await dist.list_wallets(session)
-    out: list[DistributionWalletOut] = []
-
-    token_rows: list[AirdropToken] = []
-    if include_balances:
-        token_rows = list(
-            (await session.scalars(select(AirdropToken).where(AirdropToken.is_active.is_(True)))).all()
-        )
-
-    # Build the base response first; balances are decorated below in parallel
-    # so a slow / unavailable RPC can never block listing wallets.
-    items = [DistributionWalletOut.model_validate(w) for w in wallets]
-
-    if include_balances and items:
-        # If RPC is unconfigured, return wallets with null balances rather than
-        # failing the whole request — the table should still render.
-        try:
-            from backend.services.web3_client import get_web3
-            get_web3()
-            rpc_available = True
-        except Web3Unavailable:
-            rpc_available = False
-
-        if rpc_available:
-            # Public Sepolia endpoints (rpc2.sepolia.org etc.) routinely take
-            # 5–15s per call. Keep this generous so balances actually render;
-            # the calls run in parallel so total page time is still bounded.
-            PER_CALL_TIMEOUT = 20.0  # seconds
-
-            async def _safe_eth(addr: str):
-                try:
-                    return await asyncio.wait_for(get_eth_balance(addr), timeout=PER_CALL_TIMEOUT)
-                except Exception as e:  # noqa: BLE001
-                    logger.warning("eth balance failed for %s: %s: %r", addr, type(e).__name__, e)
-                    return None
-
-            async def _safe_token(token: AirdropToken, addr: str):
-                try:
-                    return await asyncio.wait_for(
-                        get_token_balance(token.contract_address, addr, token.decimals),
-                        timeout=PER_CALL_TIMEOUT,
-                    )
-                except Exception as e:  # noqa: BLE001
-                    logger.warning(
-                        "token balance failed for %s/%s: %s: %r",
-                        addr, token.symbol, type(e).__name__, e,
-                    )
-                    return None
-
-            async def _decorate(idx: int, w: DistributionWallet):
-                eth_task = _safe_eth(w.address)
-                token_tasks = [_safe_token(t, w.address) for t in token_rows]
-                eth_res, *token_res = await asyncio.gather(eth_task, *token_tasks)
-                items[idx].eth_balance = eth_res
-                items[idx].token_balances = {
-                    t.symbol: bal for t, bal in zip(token_rows, token_res) if bal is not None
-                }
-
-            await asyncio.gather(*[_decorate(i, w) for i, w in enumerate(wallets)])
-
-    return items
+    return [DistributionWalletOut.model_validate(w) for w in wallets]
 
 
 @router.post(
@@ -130,6 +66,20 @@ async def create_wallet(payload: DistributionWalletCreate, session: AsyncSession
     except IntegrityError as e:
         await session.rollback()
         raise HTTPException(status_code=409, detail=f"Wallet already exists: {e.orig}") from e
+    return DistributionWalletOut.model_validate(wallet)
+
+
+@router.post(
+    "/wallets/{wallet_id}/refresh",
+    response_model=DistributionWalletOut,
+    dependencies=[Depends(require_admin)],
+)
+async def refresh_wallet(wallet_id: int, session: AsyncSession = Depends(get_session)):
+    """Fetch live ETH + token balances from the chain and persist them."""
+    wallet = await session.get(DistributionWallet, wallet_id)
+    if wallet is None:
+        raise HTTPException(status_code=404, detail="Wallet not found")
+    wallet = await dist.refresh_wallet_balances(session, wallet)
     return DistributionWalletOut.model_validate(wallet)
 
 

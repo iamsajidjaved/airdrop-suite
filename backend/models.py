@@ -239,9 +239,10 @@ class DistributionWalletOut(BaseModel):
     is_active: bool
     created_at: datetime
     updated_at: datetime
-    # Live balances are added by the router; not stored.
+    # Cached balances populated on wallet creation and on manual refresh.
     eth_balance: Optional[Decimal] = None
     token_balances: Optional[dict[str, Decimal]] = None
+    balances_updated_at: Optional[datetime] = None
 
 
 # ----- Campaigns -----

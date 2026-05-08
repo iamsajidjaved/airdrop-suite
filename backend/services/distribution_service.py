@@ -6,6 +6,7 @@ router) call into.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -27,8 +28,18 @@ from backend.db_models import (
     DistributionWallet,
 )
 from backend.services.crypto import decrypt_private_key, encrypt_private_key
+from backend.services.web3_client import (
+    Web3Unavailable,
+    get_eth_balance,
+    get_token_balance,
+    get_web3,
+)
 
 logger = logging.getLogger(__name__)
+
+# Per-RPC-call ceiling for balance fetches. Public Sepolia endpoints can take
+# ~5–15s; keep this generous so values render rather than appearing as None.
+_BALANCE_RPC_TIMEOUT = 20.0
 
 
 # ---------------- Wallets ----------------
@@ -55,12 +66,72 @@ async def add_wallet(session: AsyncSession, *, private_key: str, label: Optional
     session.add(wallet)
     await session.commit()
     await session.refresh(wallet)
+    # Best-effort: populate balances immediately so the UI shows a value as soon
+    # as the wallet appears. RPC failures are swallowed — the row still renders
+    # and the operator can hit Refresh later.
+    await refresh_wallet_balances(session, wallet)
     return wallet
 
 
 async def list_wallets(session: AsyncSession) -> list[DistributionWallet]:
     rows = await session.scalars(select(DistributionWallet).order_by(DistributionWallet.id))
     return list(rows.all())
+
+
+async def refresh_wallet_balances(
+    session: AsyncSession, wallet: DistributionWallet
+) -> DistributionWallet:
+    """Fetch live ETH + active-token balances and persist them on the wallet row.
+
+    All RPC calls run in parallel. Per-call failures are logged and skipped so
+    a single broken token contract never poisons the whole refresh.
+
+    If the RPC is unconfigured, the wallet is left untouched (no exception).
+    """
+    try:
+        get_web3()
+    except Web3Unavailable:
+        logger.info("Skipping balance refresh for %s: ETH_RPC_URL not configured", wallet.address)
+        return wallet
+
+    tokens = list(
+        (await session.scalars(
+            select(AirdropToken).where(AirdropToken.is_active.is_(True))
+        )).all()
+    )
+
+    async def _eth() -> Optional[Decimal]:
+        try:
+            return await asyncio.wait_for(
+                get_eth_balance(wallet.address), timeout=_BALANCE_RPC_TIMEOUT
+            )
+        except Exception as e:  # noqa: BLE001
+            logger.warning("eth balance failed for %s: %s: %r", wallet.address, type(e).__name__, e)
+            return None
+
+    async def _tok(token: AirdropToken) -> Optional[Decimal]:
+        try:
+            return await asyncio.wait_for(
+                get_token_balance(token.contract_address, wallet.address, token.decimals),
+                timeout=_BALANCE_RPC_TIMEOUT,
+            )
+        except Exception as e:  # noqa: BLE001
+            logger.warning(
+                "token balance failed for %s/%s: %s: %r",
+                wallet.address, token.symbol, type(e).__name__, e,
+            )
+            return None
+
+    eth_res, *tok_res = await asyncio.gather(_eth(), *(_tok(t) for t in tokens))
+
+    wallet.eth_balance = eth_res
+    wallet.token_balances = {
+        t.symbol: str(bal) for t, bal in zip(tokens, tok_res) if bal is not None
+    }
+    wallet.balances_updated_at = datetime.now(tz=timezone.utc)
+    await session.commit()
+    await session.refresh(wallet)
+    return wallet
 
 
 async def get_wallet_decrypted_key(session: AsyncSession, wallet_id: int) -> str:

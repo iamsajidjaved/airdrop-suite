@@ -106,7 +106,7 @@ async function refreshConfig() {
 
 async function refreshWallets() {
     try {
-        const wallets = await api('GET', `/wallets?include_balances=false`);
+        const wallets = await api('GET', `/wallets`);
         WALLETS_CACHE = wallets;
         const kpiW = $('kpiWallets');
         if (kpiW) kpiW.textContent = wallets.filter(w => w.is_active).length;

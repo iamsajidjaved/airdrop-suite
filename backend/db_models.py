@@ -110,6 +110,12 @@ class DistributionWallet(Base):
     encrypted_private_key: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
     key_nonce: Mapped[bytes] = mapped_column(LargeBinary(12), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
+    # Cached balances populated on wallet creation and on manual refresh.
+    eth_balance: Mapped[Optional[Decimal]] = mapped_column(Numeric(38, 18), nullable=True)
+    token_balances: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    balances_updated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

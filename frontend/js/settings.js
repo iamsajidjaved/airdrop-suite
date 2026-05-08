@@ -272,31 +272,46 @@
     // =====================================================================
     // SENDER WALLETS
     // =====================================================================
+    function fmtBalanceTimestamp(iso) {
+        if (!iso) return "never";
+        const d = new Date(iso);
+        if (isNaN(d.getTime())) return "—";
+        return d.toLocaleString();
+    }
+
+    function renderWalletRow(w) {
+        const tokenBals = w.token_balances && Object.keys(w.token_balances).length
+            ? Object.entries(w.token_balances).map(([sym, bal]) => `${escapeHtml(sym)}: ${fmtNum(bal)}`).join(" · ")
+            : "—";
+        const ethCell = (w.eth_balance !== undefined && w.eth_balance !== null) ? fmtNum(w.eth_balance) : "—";
+        const ts = fmtBalanceTimestamp(w.balances_updated_at);
+        return `<tr data-wallet-id="${w.id}">
+            <td><span class="addr">${escapeHtml(w.address)}</span></td>
+            <td>${escapeHtml(w.label || "")}</td>
+            <td>${w.is_active ? '<span class="dist-pill confirmed">yes</span>' : '<span class="dist-pill paused">no</span>'}</td>
+            <td class="mono">${ethCell}</td>
+            <td>
+                <div class="mono">${tokenBals}</div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">as of ${escapeHtml(ts)}</div>
+            </td>
+            <td class="row-actions">
+                <button class="row-btn" data-w-action="refresh" data-id="${w.id}">Refresh</button>
+                <button class="row-btn" data-w-action="toggle" data-id="${w.id}" data-active="${w.is_active}">${w.is_active ? "Disable" : "Enable"}</button>
+                <button class="row-btn danger" data-w-action="delete" data-id="${w.id}">Delete</button>
+            </td>
+        </tr>`;
+    }
+
     async function loadWallets() {
         const tbody = $("walletsTbody");
         tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 24px;">Loading…</td></tr>`;
         try {
-            const wallets = await distApi("GET", "/wallets?include_balances=true");
+            const wallets = await distApi("GET", "/wallets");
             if (!wallets.length) {
                 tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 24px;">No wallets yet.</td></tr>`;
                 return;
             }
-            tbody.innerHTML = wallets.map(w => {
-                const tokenBals = w.token_balances
-                    ? Object.entries(w.token_balances).map(([sym, bal]) => `${escapeHtml(sym)}: ${fmtNum(bal)}`).join(" · ")
-                    : "—";
-                return `<tr>
-                    <td><span class="addr">${escapeHtml(w.address)}</span></td>
-                    <td>${escapeHtml(w.label || "")}</td>
-                    <td>${w.is_active ? '<span class="dist-pill confirmed">yes</span>' : '<span class="dist-pill paused">no</span>'}</td>
-                    <td class="mono">${w.eth_balance !== undefined && w.eth_balance !== null ? fmtNum(w.eth_balance) : "—"}</td>
-                    <td class="mono">${tokenBals}</td>
-                    <td class="row-actions">
-                        <button class="row-btn" data-w-action="toggle" data-id="${w.id}" data-active="${w.is_active}">${w.is_active ? "Disable" : "Enable"}</button>
-                        <button class="row-btn danger" data-w-action="delete" data-id="${w.id}">Delete</button>
-                    </td>
-                </tr>`;
-            }).join("");
+            tbody.innerHTML = wallets.map(renderWalletRow).join("");
         } catch (e) {
             tbody.innerHTML = `<tr><td colspan="6" class="admin-error">${escapeHtml(e.message)}</td></tr>`;
         }
@@ -308,6 +323,23 @@
         const id = btn.dataset.id;
         const action = btn.dataset.wAction;
         try {
+            if (action === "refresh") {
+                btn.disabled = true;
+                const original = btn.textContent;
+                btn.textContent = "Refreshing…";
+                try {
+                    const updated = await distApi("POST", `/wallets/${id}/refresh`);
+                    const row = document.querySelector(`tr[data-wallet-id="${id}"]`);
+                    if (row) row.outerHTML = renderWalletRow(updated);
+                } finally {
+                    // If the row was replaced, the old button is gone — nothing to restore.
+                    if (document.body.contains(btn)) {
+                        btn.disabled = false;
+                        btn.textContent = original;
+                    }
+                }
+                return;
+            }
             if (action === "toggle") {
                 const isActive = btn.dataset.active === "true";
                 await distApi("PATCH", `/wallets/${id}`, { is_active: !isActive });
