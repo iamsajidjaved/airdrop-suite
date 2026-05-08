@@ -5,7 +5,7 @@ import logging
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -128,8 +128,23 @@ async def delete_wallet(wallet_id: int, session: AsyncSession = Depends(get_sess
 # ---------------- Worker ----------------
 
 @router.get("/worker", response_model=DistributionWorkerState)
-async def get_worker():
+async def get_worker(session: AsyncSession = Depends(get_session)):
     s = distribution_worker.state
+    # Use DB-accurate counts so the UI stays correct after resets/restarts.
+    confirmed = int(await session.scalar(
+        select(func.count()).select_from(AirdropSend).where(AirdropSend.status == "confirmed")
+    ) or 0)
+    failed = int(await session.scalar(
+        select(func.count()).select_from(AirdropSend).where(AirdropSend.status == "failed")
+    ) or 0)
+    pending = int(await session.scalar(
+        select(func.count()).select_from(AirdropSend).where(AirdropSend.status == "pending")
+    ) or 0)
+    sent = int(await session.scalar(
+        select(func.count()).select_from(AirdropSend).where(
+            and_(AirdropSend.status.in_(["broadcast", "confirmed", "failed"]), AirdropSend.attempts > 0)
+        )
+    ) or 0)
     return DistributionWorkerState(
         enabled=s.enabled,
         running=s.running,
@@ -138,10 +153,10 @@ async def get_worker():
         last_tick_at=s.last_tick_at,
         last_error=s.last_error,
         in_flight=s.in_flight,
-        sent_total=s.sent_total,
-        confirmed_total=s.confirmed_total,
-        failed_total=s.failed_total,
-        pending_sends=s.pending_sends,
+        sent_total=sent,
+        confirmed_total=confirmed,
+        failed_total=failed,
+        pending_sends=pending,
     )
 
 

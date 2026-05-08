@@ -1,0 +1,65 @@
+- generic [active] [ref=e1]:
+  - complementary [ref=e2]:
+    - link "Airdrop Suite" [ref=e3] [cursor=pointer]:
+      - /url: /
+      - img [ref=e5]
+      - generic [ref=e8]: Airdrop Suite
+    - navigation [ref=e9]:
+      - generic [ref=e10]: Main Menu
+      - link "Explorer" [ref=e11] [cursor=pointer]:
+        - /url: /
+        - img [ref=e12]
+        - text: Explorer
+      - link "Scanner" [ref=e17] [cursor=pointer]:
+        - /url: /admin/scanner
+        - img [ref=e18]
+        - text: Scanner
+      - link "Airdrop" [ref=e21] [cursor=pointer]:
+        - /url: /admin/airdrop
+        - img [ref=e22]
+        - text: Airdrop
+      - link "Settings" [ref=e24] [cursor=pointer]:
+        - /url: /admin/settings
+        - img [ref=e25]
+        - text: Settings
+  - banner [ref=e28]:
+    - generic [ref=e29]:
+      - generic [ref=e30]: Settings
+      - generic [ref=e31]:
+        - generic [ref=e32]: Home
+        - generic [ref=e33]: ›
+        - generic [ref=e34]: Settings
+  - main [ref=e35]:
+    - generic [ref=e36]:
+      - tablist "Settings sections" [ref=e37]:
+        - tab "Threshold" [ref=e38] [cursor=pointer]:
+          - img [ref=e39]
+          - text: Threshold
+        - tab "Tokens" [ref=e44] [cursor=pointer]:
+          - img [ref=e45]
+          - text: Tokens
+        - tab "Sender Wallets" [ref=e47] [cursor=pointer]:
+          - img [ref=e48]
+          - text: Sender Wallets
+        - tab "Advanced" [ref=e50] [cursor=pointer]:
+          - img [ref=e51]
+          - text: Advanced
+        - tab "Filters" [ref=e53] [cursor=pointer]:
+          - img [ref=e54]
+          - text: Filters
+        - tab "Airdrop" [ref=e56] [cursor=pointer]:
+          - img [ref=e57]
+          - text: Airdrop
+      - generic [ref=e60]:
+        - generic [ref=e61]:
+          - img [ref=e63]
+          - generic [ref=e65]:
+            - heading "Minimum Transfer Threshold" [level=2] [ref=e66]
+            - paragraph [ref=e67]: Transfers below this USD value are ignored by the scanner. Applied to the next scan.
+        - generic [ref=e68]:
+          - generic [ref=e69]:
+            - generic [ref=e70]: Minimum USD
+            - generic [ref=e71]:
+              - generic: $
+              - spinbutton "Minimum USD" [ref=e72]
+          - button "Save" [ref=e73] [cursor=pointer]

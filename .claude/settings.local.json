@@ -50,7 +50,11 @@
       "PowerShell(Get-WmiObject *)",
       "PowerShell(netstat *)",
       "PowerShell(taskkill *)",
-      "mcp__playwright__browser_select_option"
+      "mcp__playwright__browser_select_option",
+      "Bash(curl *)",
+      "Bash(python -m json.tool)",
+      "mcp__playwright__browser_handle_dialog",
+      "PowerShell(Get-CimInstance *)"
     ]
   }
 }

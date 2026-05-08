@@ -7,10 +7,10 @@ a configuration change to the quality filters.
 Two scopes are supported:
 
 * ``reset_collected_data`` (default) — clears every row produced at runtime
-  while preserving operator-managed configuration (token list, threshold,
-  blocklist, sender wallets, encrypted keys). Token ``last_scanned_block`` is
-  reset to NULL so the next monitor pass starts from each token's configured
-  start block.
+  (airdrop_sends, airdrop_transactions, wallet_contract_cache) while preserving
+  operator-managed configuration (token list, threshold, blocklist, sender
+  wallets, encrypted keys, distribution settings). Token ``last_scanned_block``
+  is reset to NULL so the next monitor pass starts fresh.
 
 * ``reset_collected_data(include_blocklist=True, include_wallets=True)`` —
   also wipes the quality blocklist (re-seeded by Alembic on the next migration
@@ -34,10 +34,9 @@ logger = logging.getLogger(__name__)
 
 # Order matters: child tables before parents to satisfy FKs even though the
 # truncates use CASCADE.
+# airdrop_sends must come before airdrop_transactions (CASCADE FK on token_id).
 _RUNTIME_TABLES_CASCADE = (
-    "distribution_transactions",
-    "distribution_recipients",
-    "distribution_campaigns",
+    "airdrop_sends",
     "airdrop_transactions",
     "wallet_contract_cache",
 )

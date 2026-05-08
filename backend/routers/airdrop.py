@@ -423,11 +423,11 @@ async def reset_data(
 ):
     """Wipe collected runtime data so a fresh scan can start from a clean slate.
 
-    Always truncates: airdrop_transactions, wallet_contract_cache,
-    distribution_campaigns, distribution_recipients, distribution_transactions.
+    Always truncates: airdrop_sends, airdrop_transactions, wallet_contract_cache.
     Always resets last_scanned_block on every airdrop_tokens row.
 
-    Schema and operator-managed config (token list, threshold) are preserved.
+    Schema and operator-managed config (token list, threshold, distribution
+    settings, sender wallets) are preserved.
     """
     from backend.services.reset_service import reset_collected_data
 

@@ -1,0 +1,89 @@
+- generic [ref=e1]:
+  - complementary [ref=e2]:
+    - link "Airdrop Suite" [ref=e3] [cursor=pointer]:
+      - /url: /
+      - img [ref=e5]
+      - generic [ref=e8]: Airdrop Suite
+    - navigation [ref=e9]:
+      - generic [ref=e10]: Main Menu
+      - link "Explorer" [ref=e11] [cursor=pointer]:
+        - /url: /
+        - img [ref=e12]
+        - text: Explorer
+      - link "Scanner" [ref=e17] [cursor=pointer]:
+        - /url: /admin/scanner
+        - img [ref=e18]
+        - text: Scanner
+      - link "Airdrop" [ref=e21] [cursor=pointer]:
+        - /url: /admin/airdrop
+        - img [ref=e22]
+        - text: Airdrop
+      - link "Settings" [ref=e24] [cursor=pointer]:
+        - /url: /admin/settings
+        - img [ref=e25]
+        - text: Settings
+  - banner [ref=e28]:
+    - generic [ref=e29]:
+      - generic [ref=e30]: Settings
+      - generic [ref=e31]:
+        - generic [ref=e32]: Home
+        - generic [ref=e33]: ›
+        - generic [ref=e34]: Settings
+  - main [ref=e35]:
+    - generic [ref=e36]:
+      - tablist "Settings sections" [ref=e37]:
+        - tab "Threshold" [ref=e38] [cursor=pointer]:
+          - img [ref=e39]
+          - text: Threshold
+        - tab "Tokens" [ref=e44] [cursor=pointer]:
+          - img [ref=e45]
+          - text: Tokens
+        - tab "Sender Wallets" [ref=e47] [cursor=pointer]:
+          - img [ref=e48]
+          - text: Sender Wallets
+        - tab "Advanced" [ref=e50] [cursor=pointer]:
+          - img [ref=e51]
+          - text: Advanced
+        - tab "Filters" [ref=e53] [cursor=pointer]:
+          - img [ref=e54]
+          - text: Filters
+        - tab "Airdrop" [active] [ref=e56] [cursor=pointer]:
+          - img [ref=e57]
+          - text: Airdrop
+      - generic [ref=e76]:
+        - heading "Airdrop Configuration" [level=2] [ref=e77]
+        - paragraph [ref=e78]: Configure what the worker sends and how. Changes take effect on the next worker tick.
+        - generic [ref=e79]:
+          - generic [ref=e80]:
+            - generic [ref=e81]: Token to airdrop
+            - combobox "Token to airdrop" [ref=e82] [cursor=pointer]:
+              - option "— select token —"
+              - option "EURC (sepolia)"
+              - option "PYUSD (sepolia)"
+              - option "USDC (sepolia)" [selected]
+          - generic [ref=e83]:
+            - generic [ref=e84]: Amount per send (token units)
+            - spinbutton "Amount per send (token units)" [ref=e85]: "1.0"
+          - generic [ref=e86]:
+            - generic [ref=e87]: Distribution mode
+            - generic [ref=e88]:
+              - generic [ref=e89] [cursor=pointer]:
+                - radio "All Wallets Every active sender sends to each receiver" [ref=e90]
+                - generic [ref=e91]:
+                  - strong [ref=e92]: All Wallets
+                  - text: Every active sender sends to each receiver
+              - generic [ref=e93] [cursor=pointer]:
+                - radio "Random Wallet One randomly chosen sender per receiver" [checked] [ref=e94]
+                - generic [ref=e95]:
+                  - strong [ref=e96]: Random Wallet
+                  - text: One randomly chosen sender per receiver
+          - generic [ref=e97]:
+            - generic [ref=e98]:
+              - generic [ref=e99]: Worker interval (seconds)
+              - spinbutton "Worker interval (seconds)" [ref=e100]: "10"
+              - paragraph [ref=e101]: How often the worker polls for pending sends.
+            - generic [ref=e102]:
+              - generic [ref=e103]: Max retries per send
+              - spinbutton "Max retries per send" [ref=e104]: "3"
+              - paragraph [ref=e105]: Sends exceeding this limit are marked failed.
+          - button "Save Configuration" [ref=e107] [cursor=pointer]
