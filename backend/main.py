@@ -35,8 +35,8 @@ async def lifespan(app: FastAPI):
 
 # Create FastAPI app
 app = FastAPI(
-    title="Wallet Explorer API",
-    description="Multi-Network Wallet Transaction Explorer (ERC + TRC)",
+    title="Airdrop Suite API",
+    description="Airdrop Suite — wallet explorer, scanner, and airdrop campaigns (ERC + TRC)",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -77,7 +77,7 @@ async def root():
     index_path = frontend_path / "index.html"
     if index_path.exists():
         return FileResponse(index_path)
-    return {"message": "Wallet Explorer API", "docs": "/docs"}
+    return {"message": "Airdrop Suite API", "docs": "/docs"}
 
 
 @app.get("/explorer")
@@ -89,22 +89,22 @@ async def explorer():
     return {"message": "Explorer page not found"}
 
 
-@app.get("/admin/airdrop")
-async def admin_airdrop():
-    """Serve the airdrop admin page"""
+@app.get("/admin/scanner")
+async def admin_scanner():
+    """Serve the scanner admin page"""
     admin_path = frontend_path / "admin.html"
     if admin_path.exists():
         return FileResponse(admin_path)
-    return {"message": "Admin page not found"}
+    return {"message": "Scanner page not found"}
 
 
-@app.get("/admin/distribution")
-async def admin_distribution():
-    """Serve the distribution admin page"""
+@app.get("/admin/airdrop")
+async def admin_airdrop():
+    """Serve the airdrop campaigns admin page"""
     page = frontend_path / "distribution.html"
     if page.exists():
         return FileResponse(page)
-    return {"message": "Distribution admin page not found"}
+    return {"message": "Airdrop page not found"}
 
 
 @app.get("/admin/settings")
@@ -121,7 +121,7 @@ async def health_check():
     """Health check endpoint"""
     return {
         "status": "healthy",
-        "service": "Wallet Explorer API",
+        "service": "Airdrop Suite API",
         "version": "1.0.0"
     }
 
