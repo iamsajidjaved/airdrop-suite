@@ -39,7 +39,18 @@
       "Bash(findstr \":8000\")",
       "Bash(Get-Process -Name \"python*\",\"uvicorn*\" -ErrorAction SilentlyContinue)",
       "Bash(Select-Object Id, ProcessName, CPU)",
-      "Bash(Write-Host \"waited\")"
+      "Bash(Write-Host \"waited\")",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_wait_for",
+      "Bash(Get-Content *)",
+      "Bash(kill -9 1524)",
+      "PowerShell(Stop-Process *)",
+      "PowerShell(Get-NetTCPConnection *)",
+      "PowerShell(Get-Process *)",
+      "PowerShell(Get-WmiObject *)",
+      "PowerShell(netstat *)",
+      "PowerShell(taskkill *)",
+      "mcp__playwright__browser_select_option"
     ]
   }
 }

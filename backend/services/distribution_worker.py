@@ -22,7 +22,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Optional
 
 from eth_account import Account
-from sqlalchemy import and_, func, select, text
+from sqlalchemy import Integer, Numeric, and_, bindparam, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.config import chain_id_for, settings
@@ -208,8 +208,12 @@ class DistributionWorker:
                         ON CONFLICT ON CONSTRAINT uq_airdrop_sends_address_wallet_token
                         DO NOTHING
                         """
+                    ).bindparams(
+                        bindparam("token_id", type_=Integer()),
+                        bindparam("amount", type_=Numeric()),
+                        bindparam("max_retries", type_=Integer()),
                     ),
-                    {"token_id": token_id, "amount": str(amount), "max_retries": int(cfg.get("distribution_max_retries", "3"))},
+                    {"token_id": token_id, "amount": amount, "max_retries": int(cfg.get("distribution_max_retries", "3"))},
                 )
             else:
                 # All active wallets each send to every address.
@@ -240,8 +244,12 @@ class DistributionWorker:
                         ON CONFLICT ON CONSTRAINT uq_airdrop_sends_address_wallet_token
                         DO NOTHING
                         """
+                    ).bindparams(
+                        bindparam("token_id", type_=Integer()),
+                        bindparam("amount", type_=Numeric()),
+                        bindparam("max_retries", type_=Integer()),
                     ),
-                    {"token_id": token_id, "amount": str(amount), "max_retries": int(cfg.get("distribution_max_retries", "3"))},
+                    {"token_id": token_id, "amount": amount, "max_retries": int(cfg.get("distribution_max_retries", "3"))},
                 )
             await session.commit()
 

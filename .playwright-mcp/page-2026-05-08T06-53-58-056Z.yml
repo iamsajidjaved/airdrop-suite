@@ -1,0 +1,245 @@
+- generic [active] [ref=e1]:
+  - complementary [ref=e2]:
+    - link "Airdrop Suite" [ref=e3] [cursor=pointer]:
+      - /url: /
+      - img [ref=e5]
+      - generic [ref=e8]: Airdrop Suite
+    - navigation [ref=e9]:
+      - generic [ref=e10]: Main Menu
+      - link "Explorer" [ref=e11] [cursor=pointer]:
+        - /url: /
+        - img [ref=e12]
+        - text: Explorer
+      - link "Scanner" [ref=e17] [cursor=pointer]:
+        - /url: /admin/scanner
+        - img [ref=e18]
+        - text: Scanner
+      - link "Airdrop" [ref=e21] [cursor=pointer]:
+        - /url: /admin/airdrop
+        - img [ref=e22]
+        - text: Airdrop
+      - link "Settings" [ref=e24] [cursor=pointer]:
+        - /url: /admin/settings
+        - img [ref=e25]
+        - text: Settings
+  - banner [ref=e28]:
+    - generic [ref=e29]:
+      - generic [ref=e30]: Airdrop
+      - generic [ref=e31]:
+        - generic [ref=e32]: Home
+        - generic [ref=e33]: ›
+        - generic [ref=e34]: Airdrop
+  - main [ref=e35]:
+    - generic [ref=e36]:
+      - generic [ref=e37]:
+        - generic [ref=e38]:
+          - img [ref=e40]
+          - generic [ref=e42]:
+            - generic [ref=e43]: Sender Wallets
+            - generic [ref=e44]: 1 / 1
+        - generic [ref=e45]:
+          - img [ref=e47]
+          - generic [ref=e50]:
+            - generic [ref=e51]: Pending
+            - generic [ref=e52]: "4"
+        - generic [ref=e53]:
+          - img [ref=e55]
+          - generic [ref=e57]:
+            - generic [ref=e58]: Confirmed
+            - generic [ref=e59]: "1"
+        - generic [ref=e60]:
+          - img [ref=e62]
+          - generic [ref=e66]:
+            - generic [ref=e67]: Failed
+            - generic [ref=e68]: "0"
+      - generic [ref=e69]:
+        - generic [ref=e70]:
+          - generic [ref=e71]:
+            - heading "Worker" [level=2] [ref=e72]
+            - paragraph [ref=e73]:
+              - text: Background loop that signs and broadcasts ERC-20 transfers. Configure via
+              - link "Settings → Airdrop" [ref=e74] [cursor=pointer]:
+                - /url: /admin/settings#airdrop
+              - text: .
+          - generic [ref=e75]:
+            - generic [ref=e78]: Stopped
+            - button "Start" [ref=e79] [cursor=pointer]:
+              - img [ref=e80]
+              - text: Start
+            - button "Refresh" [ref=e82] [cursor=pointer]
+        - generic [ref=e83]:
+          - generic [ref=e84]:
+            - generic [ref=e85]: Mode
+            - generic [ref=e86]: All Wallets
+          - generic [ref=e88]:
+            - generic [ref=e89]: Interval
+            - generic [ref=e90]: 10s
+          - generic [ref=e92]:
+            - generic [ref=e93]: Total Sent
+            - generic [ref=e94]: "2"
+          - generic [ref=e96]:
+            - generic [ref=e97]: In Flight
+            - generic [ref=e98]: "0"
+          - generic [ref=e100]:
+            - generic [ref=e101]: Last Tick
+            - generic [ref=e102]: 10:53:39 AM
+      - generic [ref=e103]:
+        - generic [ref=e105]:
+          - heading "Dispatch History" [level=2] [ref=e106]
+          - paragraph [ref=e107]: Complete record of all airdrop sends enqueued and processed by the worker.
+        - generic [ref=e108]:
+          - generic [ref=e109]:
+            - combobox [ref=e110] [cursor=pointer]:
+              - option "All statuses" [selected]
+              - option "Pending"
+              - option "Broadcast"
+              - option "Confirmed"
+              - option "Failed"
+            - textbox "Search by address…" [ref=e111]
+            - button "Refresh" [ref=e112] [cursor=pointer]
+          - generic [ref=e113]:
+            - generic [ref=e114]: "Rows per page:"
+            - combobox "Rows per page:" [ref=e115] [cursor=pointer]:
+              - option "10"
+              - option "25"
+              - option "50" [selected]
+              - option "100"
+        - table [ref=e117]:
+          - rowgroup [ref=e118]:
+            - row "Receiving Address ⇅ Sender ⇅ Amount ⇅ Status ⇅ Tx Hash Attempts ⇅ Created ↓" [ref=e119]:
+              - columnheader "Receiving Address ⇅" [ref=e120] [cursor=pointer]
+              - columnheader "Sender ⇅" [ref=e121] [cursor=pointer]
+              - columnheader "Amount ⇅" [ref=e122] [cursor=pointer]
+              - columnheader "Status ⇅" [ref=e123] [cursor=pointer]
+              - columnheader "Tx Hash" [ref=e124] [cursor=pointer]
+              - columnheader "Attempts ⇅" [ref=e125] [cursor=pointer]
+              - columnheader "Created ↓" [ref=e126] [cursor=pointer]
+          - rowgroup [ref=e127]:
+            - row "0xa63d61a0e194db52dd3a1fc95d5419891543c738 0x8668…77e0 1 USDC pending — 0 5/8/2026, 10:53:19 AM" [ref=e199]:
+              - cell "0xa63d61a0e194db52dd3a1fc95d5419891543c738" [ref=e200]
+              - cell "0x8668…77e0" [ref=e201]
+              - cell "1 USDC" [ref=e202]
+              - cell "pending" [ref=e203]:
+                - generic [ref=e204]: pending
+              - cell "—" [ref=e205]
+              - cell "0" [ref=e206]
+              - cell "5/8/2026, 10:53:19 AM" [ref=e207]
+            - row "0x8eacfab7a165567bdba0ada056de95d6ea41d8f3 0x8668…77e0 1 USDC pending — 0 5/8/2026, 10:53:19 AM" [ref=e208]:
+              - cell "0x8eacfab7a165567bdba0ada056de95d6ea41d8f3" [ref=e209]
+              - cell "0x8668…77e0" [ref=e210]
+              - cell "1 USDC" [ref=e211]
+              - cell "pending" [ref=e212]:
+                - generic [ref=e213]: pending
+              - cell "—" [ref=e214]
+              - cell "0" [ref=e215]
+              - cell "5/8/2026, 10:53:19 AM" [ref=e216]
+            - row "0x75c0c372da875a4fc78e8a37f58618a6d18904e8 0x8668…77e0 1 USDC pending — 0 5/8/2026, 10:53:19 AM" [ref=e217]:
+              - cell "0x75c0c372da875a4fc78e8a37f58618a6d18904e8" [ref=e218]
+              - cell "0x8668…77e0" [ref=e219]
+              - cell "1 USDC" [ref=e220]
+              - cell "pending" [ref=e221]:
+                - generic [ref=e222]: pending
+              - cell "—" [ref=e223]
+              - cell "0" [ref=e224]
+              - cell "5/8/2026, 10:53:19 AM" [ref=e225]
+            - row "0x6dbe810e3314546009bd6e1b29f9031211cda5d2 0x8668…77e0 1 USDC pending — 0 5/8/2026, 10:53:19 AM" [ref=e226]:
+              - cell "0x6dbe810e3314546009bd6e1b29f9031211cda5d2" [ref=e227]
+              - cell "0x8668…77e0" [ref=e228]
+              - cell "1 USDC" [ref=e229]
+              - cell "pending" [ref=e230]:
+                - generic [ref=e231]: pending
+              - cell "—" [ref=e232]
+              - cell "0" [ref=e233]
+              - cell "5/8/2026, 10:53:19 AM" [ref=e234]
+            - row "0x2ec12c171e424b4a60c74294180e774370fcaabc 0x8668…77e0 1 USDC pending — 0 5/8/2026, 10:53:19 AM" [ref=e235]:
+              - cell "0x2ec12c171e424b4a60c74294180e774370fcaabc" [ref=e236]
+              - cell "0x8668…77e0" [ref=e237]
+              - cell "1 USDC" [ref=e238]
+              - cell "pending" [ref=e239]:
+                - generic [ref=e240]: pending
+              - cell "—" [ref=e241]
+              - cell "0" [ref=e242]
+              - cell "5/8/2026, 10:53:19 AM" [ref=e243]
+            - row "0x01e3537ff01c3adb44f4073503139c88484f76c3 0x8668…77e0 1 USDC broadcast 0xf3bae55d… 1 5/8/2026, 10:53:19 AM" [ref=e244]:
+              - cell "0x01e3537ff01c3adb44f4073503139c88484f76c3" [ref=e245]
+              - cell "0x8668…77e0" [ref=e246]
+              - cell "1 USDC" [ref=e247]
+              - cell "broadcast" [ref=e248]:
+                - generic [ref=e249]: broadcast
+              - cell "0xf3bae55d…" [ref=e250]:
+                - link "0xf3bae55d…" [ref=e251] [cursor=pointer]:
+                  - /url: https://etherscan.io/tx/0xf3bae55d16422caecc0319460e19347b1295a0f073973af85a8a7c0e9ccd7efb
+              - cell "1" [ref=e252]
+              - cell "5/8/2026, 10:53:19 AM" [ref=e253]
+            - row "0xa63d61a0e194db52dd3a1fc95d5419891543c738 0x8668…77e0 1 EURC confirmed 0x9d33f3d9… 1 5/8/2026, 9:49:39 AM" [ref=e254]:
+              - cell "0xa63d61a0e194db52dd3a1fc95d5419891543c738" [ref=e255]
+              - cell "0x8668…77e0" [ref=e256]
+              - cell "1 EURC" [ref=e257]
+              - cell "confirmed" [ref=e258]:
+                - generic [ref=e259]: confirmed
+              - cell "0x9d33f3d9…" [ref=e260]:
+                - link "0x9d33f3d9…" [ref=e261] [cursor=pointer]:
+                  - /url: https://etherscan.io/tx/0x9d33f3d92eeed8c2a762256d90688ba5f9ff1ac0e071c49f5ad22f9e9dffa9d9
+              - cell "1" [ref=e262]
+              - cell "5/8/2026, 9:49:39 AM" [ref=e263]
+            - row "0x8eacfab7a165567bdba0ada056de95d6ea41d8f3 0x8668…77e0 1 EURC confirmed 0x5a5debec… 1 5/8/2026, 9:49:39 AM" [ref=e264]:
+              - cell "0x8eacfab7a165567bdba0ada056de95d6ea41d8f3" [ref=e265]
+              - cell "0x8668…77e0" [ref=e266]
+              - cell "1 EURC" [ref=e267]
+              - cell "confirmed" [ref=e268]:
+                - generic [ref=e269]: confirmed
+              - cell "0x5a5debec…" [ref=e270]:
+                - link "0x5a5debec…" [ref=e271] [cursor=pointer]:
+                  - /url: https://etherscan.io/tx/0x5a5debec1428bf09c486940d45a34f9fff20bc5d4027b381fdbe50b5faabcab7
+              - cell "1" [ref=e272]
+              - cell "5/8/2026, 9:49:39 AM" [ref=e273]
+            - row "0x75c0c372da875a4fc78e8a37f58618a6d18904e8 0x8668…77e0 1 EURC confirmed 0x8d3325e2… 1 5/8/2026, 9:49:39 AM" [ref=e274]:
+              - cell "0x75c0c372da875a4fc78e8a37f58618a6d18904e8" [ref=e275]
+              - cell "0x8668…77e0" [ref=e276]
+              - cell "1 EURC" [ref=e277]
+              - cell "confirmed" [ref=e278]:
+                - generic [ref=e279]: confirmed
+              - cell "0x8d3325e2…" [ref=e280]:
+                - link "0x8d3325e2…" [ref=e281] [cursor=pointer]:
+                  - /url: https://etherscan.io/tx/0x8d3325e2ef678967c43c7e33a02d29b85bbadc89ad87efd0259fac98ba89f11f
+              - cell "1" [ref=e282]
+              - cell "5/8/2026, 9:49:39 AM" [ref=e283]
+            - row "0x6dbe810e3314546009bd6e1b29f9031211cda5d2 0x8668…77e0 1 EURC confirmed 0x7aff472b… 1 5/8/2026, 9:49:39 AM" [ref=e284]:
+              - cell "0x6dbe810e3314546009bd6e1b29f9031211cda5d2" [ref=e285]
+              - cell "0x8668…77e0" [ref=e286]
+              - cell "1 EURC" [ref=e287]
+              - cell "confirmed" [ref=e288]:
+                - generic [ref=e289]: confirmed
+              - cell "0x7aff472b…" [ref=e290]:
+                - link "0x7aff472b…" [ref=e291] [cursor=pointer]:
+                  - /url: https://etherscan.io/tx/0x7aff472b970e6f17ac4bc70afe724090cb2f62281a9f6b4c9853b22c75906a5e
+              - cell "1" [ref=e292]
+              - cell "5/8/2026, 9:49:39 AM" [ref=e293]
+            - row "0x2ec12c171e424b4a60c74294180e774370fcaabc 0x8668…77e0 1 EURC confirmed 0x12729ece… 1 5/8/2026, 9:49:39 AM" [ref=e294]:
+              - cell "0x2ec12c171e424b4a60c74294180e774370fcaabc" [ref=e295]
+              - cell "0x8668…77e0" [ref=e296]
+              - cell "1 EURC" [ref=e297]
+              - cell "confirmed" [ref=e298]:
+                - generic [ref=e299]: confirmed
+              - cell "0x12729ece…" [ref=e300]:
+                - link "0x12729ece…" [ref=e301] [cursor=pointer]:
+                  - /url: https://etherscan.io/tx/0x12729ece0527cca76645282b7b5f231a573263499db2cf2bd0cb727c24876e58
+              - cell "1" [ref=e302]
+              - cell "5/8/2026, 9:49:39 AM" [ref=e303]
+            - row "0x01e3537ff01c3adb44f4073503139c88484f76c3 0x8668…77e0 1 EURC confirmed 0x5678a974… 1 5/8/2026, 9:49:39 AM" [ref=e304]:
+              - cell "0x01e3537ff01c3adb44f4073503139c88484f76c3" [ref=e305]
+              - cell "0x8668…77e0" [ref=e306]
+              - cell "1 EURC" [ref=e307]
+              - cell "confirmed" [ref=e308]:
+                - generic [ref=e309]: confirmed
+              - cell "0x5678a974…" [ref=e310]:
+                - link "0x5678a974…" [ref=e311] [cursor=pointer]:
+                  - /url: https://etherscan.io/tx/0x5678a974f6f47df25cb55298137eedcef7d317b821e882fdf99ede4b6127999a
+              - cell "1" [ref=e312]
+              - cell "5/8/2026, 9:49:39 AM" [ref=e313]
+        - generic [ref=e130]:
+          - generic [ref=e131]: Showing 1–12 of 12 records
+          - generic [ref=e132]:
+            - button "‹ Previous" [disabled] [ref=e133] [cursor=pointer]
+            - generic [ref=e134]: 1–12
+            - button "Next ›" [disabled] [ref=e135] [cursor=pointer]

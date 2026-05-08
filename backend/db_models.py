@@ -151,7 +151,7 @@ class AirdropSend(Base):
     wallet: Mapped["DistributionWallet"] = relationship(lazy="joined")
 
     __table_args__ = (
-        UniqueConstraint("to_address", "wallet_id", name="uq_airdrop_sends_address_wallet"),
+        UniqueConstraint("to_address", "wallet_id", "token_id", name="uq_airdrop_sends_address_wallet_token"),
         Index("ix_airdrop_sends_to_address", "to_address"),
         Index("ix_airdrop_sends_status", "status"),
     )
