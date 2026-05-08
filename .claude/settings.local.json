@@ -54,7 +54,10 @@
       "Bash(curl *)",
       "Bash(python -m json.tool)",
       "mcp__playwright__browser_handle_dialog",
-      "PowerShell(Get-CimInstance *)"
+      "PowerShell(Get-CimInstance *)",
+      "Bash(nohup .venv/Scripts/uvicorn backend.main:app --reload --host 127.0.0.1 --port 8000)",
+      "Bash(grep -E '\"text\":\"[^\"]{40,}' \"C:/Users/Sajid/.claude/projects/C--Users-Sajid-Documents-wallet-explorer/e9638717-c9ff-4f4d-b6e3-8d2bc06a9e2e.jsonl\")",
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); recips=set\\(i['to_address'].lower\\(\\) for i in d['items']\\); print\\('total tx:', d['total']\\); print\\('distinct recipients:', len\\(recips\\)\\)\")"
     ]
   }
 }

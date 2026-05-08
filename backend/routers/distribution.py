@@ -145,11 +145,16 @@ async def get_worker(session: AsyncSession = Depends(get_session)):
             and_(AirdropSend.status.in_(["broadcast", "confirmed", "failed"]), AirdropSend.attempts > 0)
         )
     ) or 0)
+    # Read mode and interval from DB so display is accurate even when stopped.
+    from backend.services.distribution_service import get_distribution_config
+    cfg = await get_distribution_config(session)
+    db_mode = cfg.get("distribution_mode") or s.mode
+    db_interval = int(cfg.get("distribution_interval_seconds") or s.interval_seconds)
     return DistributionWorkerState(
         enabled=s.enabled,
         running=s.running,
-        interval_seconds=s.interval_seconds,
-        mode=s.mode,
+        interval_seconds=db_interval,
+        mode=db_mode,
         last_tick_at=s.last_tick_at,
         last_error=s.last_error,
         in_flight=s.in_flight,

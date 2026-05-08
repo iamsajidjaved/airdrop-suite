@@ -1,0 +1,125 @@
+- generic [ref=e1]:
+  - complementary [ref=e2]:
+    - link "Airdrop Suite" [ref=e3] [cursor=pointer]:
+      - /url: /
+      - img [ref=e5]
+      - generic [ref=e8]: Airdrop Suite
+    - navigation [ref=e9]:
+      - generic [ref=e10]: Main Menu
+      - link "Explorer" [ref=e11] [cursor=pointer]:
+        - /url: /
+        - img [ref=e12]
+        - text: Explorer
+      - link "Scanner" [ref=e17] [cursor=pointer]:
+        - /url: /admin/scanner
+        - img [ref=e18]
+        - text: Scanner
+      - link "Airdrop" [ref=e21] [cursor=pointer]:
+        - /url: /admin/airdrop
+        - img [ref=e22]
+        - text: Airdrop
+      - link "Settings" [ref=e24] [cursor=pointer]:
+        - /url: /admin/settings
+        - img [ref=e25]
+        - text: Settings
+  - banner [ref=e28]:
+    - generic [ref=e29]:
+      - generic [ref=e30]: Airdrop
+      - generic [ref=e31]:
+        - generic [ref=e32]: Home
+        - generic [ref=e33]: ›
+        - generic [ref=e34]: Airdrop
+  - main [ref=e35]:
+    - generic [ref=e36]:
+      - generic [ref=e37]:
+        - generic [ref=e38]:
+          - img [ref=e40]
+          - generic [ref=e42]:
+            - generic [ref=e43]: Sender Wallets
+            - generic [ref=e44]: 1 / 1
+        - generic [ref=e45]:
+          - img [ref=e47]
+          - generic [ref=e50]:
+            - generic [ref=e51]: Pending
+            - generic [ref=e52]: "6"
+        - generic [ref=e53]:
+          - img [ref=e55]
+          - generic [ref=e57]:
+            - generic [ref=e58]: Confirmed
+            - generic [ref=e59]: "0"
+        - generic [ref=e60]:
+          - img [ref=e62]
+          - generic [ref=e66]:
+            - generic [ref=e67]: Failed
+            - generic [ref=e68]: "0"
+      - generic [ref=e69]:
+        - generic [ref=e70]:
+          - generic [ref=e71]:
+            - heading "Worker" [level=2] [ref=e72]
+            - paragraph [ref=e73]:
+              - text: Background loop that signs and broadcasts ERC-20 transfers. Configure via
+              - link "Settings → Airdrop" [ref=e74] [cursor=pointer]:
+                - /url: /admin/settings#airdrop
+              - text: .
+          - generic [ref=e75]:
+            - generic [ref=e78]: Running
+            - button "Stop" [ref=e82] [cursor=pointer]:
+              - img [ref=e83]
+              - text: Stop
+            - button "Refresh" [active] [ref=e85] [cursor=pointer]
+        - generic [ref=e86]:
+          - generic [ref=e87]:
+            - generic [ref=e88]: Mode
+            - generic [ref=e89]: Random
+          - generic [ref=e91]:
+            - generic [ref=e92]: Interval
+            - generic [ref=e93]: 10s
+          - generic [ref=e95]:
+            - generic [ref=e96]: Total Sent
+            - generic [ref=e97]: "1"
+          - generic [ref=e99]:
+            - generic [ref=e100]: In Flight
+            - generic [ref=e101]: "0"
+          - generic [ref=e103]:
+            - generic [ref=e104]: Last Tick
+            - generic [ref=e105]: 11:18:45 AM
+      - generic [ref=e106]:
+        - generic [ref=e108]:
+          - heading "Dispatch History" [level=2] [ref=e109]
+          - paragraph [ref=e110]: Complete record of all airdrop sends enqueued and processed by the worker.
+        - generic [ref=e111]:
+          - generic [ref=e112]:
+            - combobox [ref=e113] [cursor=pointer]:
+              - option "All statuses" [selected]
+              - option "Pending"
+              - option "Broadcast"
+              - option "Confirmed"
+              - option "Failed"
+            - textbox "Search by address…" [ref=e114]
+            - button "Refresh" [ref=e115] [cursor=pointer]
+          - generic [ref=e116]:
+            - generic [ref=e117]: "Rows per page:"
+            - combobox "Rows per page:" [ref=e118] [cursor=pointer]:
+              - option "10"
+              - option "25"
+              - option "50" [selected]
+              - option "100"
+        - table [ref=e120]:
+          - rowgroup [ref=e121]:
+            - row "Receiving Address ⇅ Sender ⇅ Amount ⇅ Status ⇅ Tx Hash Attempts ⇅ Created ↓" [ref=e122]:
+              - columnheader "Receiving Address ⇅" [ref=e123] [cursor=pointer]
+              - columnheader "Sender ⇅" [ref=e124] [cursor=pointer]
+              - columnheader "Amount ⇅" [ref=e125] [cursor=pointer]
+              - columnheader "Status ⇅" [ref=e126] [cursor=pointer]
+              - columnheader "Tx Hash" [ref=e127] [cursor=pointer]
+              - columnheader "Attempts ⇅" [ref=e128] [cursor=pointer]
+              - columnheader "Created ↓" [ref=e129] [cursor=pointer]
+          - rowgroup [ref=e130]:
+            - row "No sends found." [ref=e139]:
+              - cell "No sends found." [ref=e140]
+        - generic [ref=e133]:
+          - generic [ref=e134]: No records found
+          - generic [ref=e135]:
+            - button "‹ Previous" [disabled] [ref=e136] [cursor=pointer]
+            - generic [ref=e137]: "0"
+            - button "Next ›" [disabled] [ref=e138] [cursor=pointer]
