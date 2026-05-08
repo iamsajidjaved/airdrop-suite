@@ -194,16 +194,18 @@ class DistributionWorker:
                           AND NOT EXISTS (
                               SELECT 1 FROM airdrop_sends s
                               WHERE s.to_address = at.to_address
+                                AND s.token_id = :token_id
                                 AND s.status != 'failed'
                           )
                           AND (
                               SELECT COUNT(*) FROM airdrop_sends s
                               WHERE s.to_address = at.to_address
+                                AND s.token_id = :token_id
                                 AND s.status = 'failed'
                           ) < :max_retries
                         ORDER BY at.to_address, random()
                         LIMIT 50
-                        ON CONFLICT ON CONSTRAINT uq_airdrop_sends_address_wallet
+                        ON CONFLICT ON CONSTRAINT uq_airdrop_sends_address_wallet_token
                         DO NOTHING
                         """
                     ),
@@ -224,16 +226,18 @@ class DistributionWorker:
                               SELECT 1 FROM airdrop_sends s
                               WHERE s.to_address = at.to_address
                                 AND s.wallet_id = dw.id
+                                AND s.token_id = :token_id
                                 AND s.status != 'failed'
                           )
                           AND (
                               SELECT COUNT(*) FROM airdrop_sends s
                               WHERE s.to_address = at.to_address
                                 AND s.wallet_id = dw.id
+                                AND s.token_id = :token_id
                                 AND s.status = 'failed'
                           ) < :max_retries
                         LIMIT 50
-                        ON CONFLICT ON CONSTRAINT uq_airdrop_sends_address_wallet
+                        ON CONFLICT ON CONSTRAINT uq_airdrop_sends_address_wallet_token
                         DO NOTHING
                         """
                     ),
