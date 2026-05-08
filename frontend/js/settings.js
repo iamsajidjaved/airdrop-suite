@@ -73,6 +73,7 @@
         wallets:   $("settings-wallets"),
         advanced:  $("settings-advanced"),
         filters:   $("settings-filters"),
+        airdrop:   $("settings-airdrop"),
     };
 
     function setTab(name) {
@@ -551,20 +552,83 @@
         }
     });
 
+    // =====================================================================
+    // AIRDROP CONFIG — distribution worker settings
+    // =====================================================================
+    async function loadTokensForDist() {
+        try {
+            const tkns = await airdropApi("/tokens");
+            const sel = $("cfgToken");
+            sel.innerHTML = '<option value="">— select token —</option>' +
+                (tkns || []).map(t =>
+                    `<option value="${escapeHtml(String(t.id))}">${escapeHtml(t.symbol)} (${escapeHtml(t.network)})</option>`
+                ).join("");
+        } catch (e) {
+            console.warn("loadTokensForDist:", e);
+        }
+    }
+
+    async function loadDistConfig() {
+        try {
+            const cfg = await distApi("GET", "/config");
+            if (cfg.distribution_token_id) $("cfgToken").value = String(cfg.distribution_token_id);
+            $("cfgAmount").value = cfg.distribution_amount || "1.0";
+            const modeRadio = document.querySelector(`input[name="cfgMode"][value="${cfg.distribution_mode || "all"}"]`);
+            if (modeRadio) modeRadio.checked = true;
+            $("cfgInterval").value = cfg.distribution_interval_seconds || 10;
+            $("cfgRetries").value = cfg.distribution_max_retries || 3;
+        } catch (e) {
+            flash($("airdropCfgStatus"), e.message, true);
+        }
+    }
+
+    $("airdropCfgForm").addEventListener("submit", async (ev) => {
+        ev.preventDefault();
+        const tokenId = Number($("cfgToken").value) || null;
+        const payload = {
+            distribution_mode: document.querySelector('input[name="cfgMode"]:checked').value,
+            distribution_amount: $("cfgAmount").value,
+            distribution_interval_seconds: Number($("cfgInterval").value) || 10,
+            distribution_max_retries: Number($("cfgRetries").value) || 3,
+        };
+        if (tokenId) payload.distribution_token_id = tokenId;
+        try {
+            await distApi("PUT", "/config", payload);
+            flash($("airdropCfgStatus"), "Saved");
+        } catch (e) {
+            flash($("airdropCfgStatus"), e.message, true);
+        }
+    });
+
     // ---------- init ----------
     (async () => {
         await loadNetworks();
         let blocklistLoaded = false;
+        let airdropCfgLoaded = false;
+
         tabs.forEach(tab => tab.addEventListener("click", async () => {
             if (tab.dataset.tab === "filters" && !blocklistLoaded) {
                 blocklistLoaded = true;
                 await loadBlocklist(0);
             }
+            if (tab.dataset.tab === "airdrop" && !airdropCfgLoaded) {
+                airdropCfgLoaded = true;
+                await loadTokensForDist();
+                await loadDistConfig();
+            }
         }));
+
         await Promise.all([loadThreshold(), loadTokens(), loadWallets(), loadFilters()]);
-        if ((window.location.hash || "").replace(/^#/, "") === "filters" && !blocklistLoaded) {
+
+        const initHash = (window.location.hash || "").replace(/^#/, "");
+        if (initHash === "filters" && !blocklistLoaded) {
             blocklistLoaded = true;
             await loadBlocklist(0);
+        }
+        if (initHash === "airdrop" && !airdropCfgLoaded) {
+            airdropCfgLoaded = true;
+            await loadTokensForDist();
+            await loadDistConfig();
         }
     })();
 })();

@@ -90,6 +90,10 @@
                     <svg class="tab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
                     Filters
                 </button>
+                <button class="settings-tab" data-tab="airdrop" role="tab">
+                    <svg class="tab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l18-9-9 18-2-7-7-2z"/></svg>
+                    Airdrop
+                </button>
             </nav>
 
             <!-- ===== THRESHOLD ===== -->
@@ -293,6 +297,61 @@
                     <div id="blocklistError" class="admin-error" style="display:none;"></div>
                 </div>
 
+            </section>
+
+            <!-- ===== AIRDROP CONFIG ===== -->
+            <section id="settings-airdrop" class="settings-section" style="display:none;">
+                <div class="card admin-card">
+                    <h2 class="admin-card-title">Airdrop Configuration</h2>
+                    <p class="admin-card-sub">Configure what the worker sends and how. Changes take effect on the next worker tick.</p>
+                    <form id="airdropCfgForm">
+                        <div class="input-group">
+                            <label for="cfgToken">Token to airdrop</label>
+                            <select id="cfgToken" class="wallet-input">
+                                <option value="">— select token —</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="cfgAmount">Amount per send (token units)</label>
+                            <input type="number" id="cfgAmount" class="wallet-input" min="0" step="any" placeholder="1.0">
+                        </div>
+                        <div class="input-group">
+                            <label>Distribution mode</label>
+                            <div class="cfg-mode-group">
+                                <label class="cfg-mode-option">
+                                    <input type="radio" name="cfgMode" value="all" checked>
+                                    <span>
+                                        <strong>All Wallets</strong>
+                                        <span class="field-hint" style="margin-top:0;">Every active sender sends to each receiver</span>
+                                    </span>
+                                </label>
+                                <label class="cfg-mode-option">
+                                    <input type="radio" name="cfgMode" value="random">
+                                    <span>
+                                        <strong>Random Wallet</strong>
+                                        <span class="field-hint" style="margin-top:0;">One randomly chosen sender per receiver</span>
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
+                            <div class="input-group" style="margin-bottom:0;">
+                                <label for="cfgInterval">Worker interval (seconds)</label>
+                                <input type="number" id="cfgInterval" class="wallet-input" min="1" step="1" placeholder="10">
+                                <p class="field-hint">How often the worker polls for pending sends.</p>
+                            </div>
+                            <div class="input-group" style="margin-bottom:0;">
+                                <label for="cfgRetries">Max retries per send</label>
+                                <input type="number" id="cfgRetries" class="wallet-input" min="1" step="1" placeholder="3">
+                                <p class="field-hint">Sends exceeding this limit are marked failed.</p>
+                            </div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:12px; margin-top:8px;">
+                            <button type="submit" class="btn btn-primary btn-sm">Save Configuration</button>
+                            <span id="airdropCfgStatus" class="admin-status"></span>
+                        </div>
+                    </form>
+                </div>
             </section>
 
         </div>

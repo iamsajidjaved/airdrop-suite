@@ -1,6 +1,5 @@
-// Airdrop admin UI controller.
-// All admin write endpoints accept a shared-secret X-Admin-Token header
-// (saved to localStorage). Reads are public.
+// Airdrop admin UI — worker monitor + dispatch history.
+// Settings (token, amount, mode, interval) live in /admin/settings#airdrop.
 
 const API = '/api/distribution';
 const AIRDROP_API = '/api/airdrop';
@@ -59,13 +58,7 @@ let EXPLORER_TX_BASE = NETWORK_EXPLORERS.ethereum;
 function etherscanTx(hash) {
     if (!hash) return '—';
     const short = `${hash.slice(0, 10)}…`;
-    return `<a href="${EXPLORER_TX_BASE}/${escapeHtml(hash)}" target="_blank" rel="noopener" style="color:var(--accent-primary); text-decoration:none; font-family:monospace; font-size:12px;">${short}</a>`;
-}
-
-function flash(el, msg, isError = false) {
-    el.textContent = msg;
-    el.style.color = isError ? 'var(--accent-danger)' : 'var(--accent-success)';
-    setTimeout(() => { el.textContent = ''; }, 3000);
+    return `<a href="${EXPLORER_TX_BASE}/${escapeHtml(hash)}" target="_blank" rel="noopener" style="color:var(--accent-primary); text-decoration:none; font-family:monospace; font-size:11px;">${short}</a>`;
 }
 
 function debounce(fn, delay) {
@@ -73,33 +66,17 @@ function debounce(fn, delay) {
     return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), delay); };
 }
 
-// ---- pagination state ----
+// ---- pagination + filter state ----
 let SENDS_OFFSET = 0;
-const SENDS_LIMIT = 50;
+let SENDS_PAGE_SIZE = 50;
 let SENDS_STATUS_FILTER = '';
 let SENDS_ADDRESS_FILTER = '';
 
-// ---- load tokens into settings form ----
-async function loadTokens() {
-    try {
-        const tokens = await api('GET', '/tokens', null, AIRDROP_API);
-        const sel = $('cfgToken');
-        const current = sel.value;
-        // Keep the placeholder option
-        while (sel.options.length > 1) sel.remove(1);
-        (tokens || []).forEach(t => {
-            const opt = document.createElement('option');
-            opt.value = t.id;
-            opt.textContent = `${t.symbol} (${t.network})`;
-            sel.appendChild(opt);
-        });
-        if (current) sel.value = current;
-    } catch (e) {
-        console.warn('loadTokens:', e);
-    }
-}
+// ---- sort state ----
+let SORT_COL = 'created_at';
+let SORT_DIR = 'desc';
 
-// ---- load wallets count for KPI ----
+// ---- KPI ----
 async function loadWalletsKpi() {
     try {
         const wallets = await api('GET', '/wallets');
@@ -110,71 +87,33 @@ async function loadWalletsKpi() {
     }
 }
 
-// ---- config ----
-async function loadConfig() {
-    try {
-        const cfg = await api('GET', '/config');
-        // Populate form
-        const tokenSel = $('cfgToken');
-        if (cfg.distribution_token_id) {
-            tokenSel.value = String(cfg.distribution_token_id);
-        }
-        $('cfgAmount').value = cfg.distribution_amount || '1.0';
-        const modeRadio = document.querySelector(`input[name="cfgMode"][value="${cfg.distribution_mode || 'all'}"]`);
-        if (modeRadio) modeRadio.checked = true;
-        $('cfgInterval').value = cfg.distribution_interval_seconds || 10;
-        $('cfgRetries').value = cfg.distribution_max_retries || 3;
-
-        // Update explorer base if needed
-        if (cfg.eth_rpc_configured) {
-            // Config doesn't expose network key directly, keep default
-        }
-    } catch (e) {
-        console.warn('loadConfig:', e);
-    }
-}
-
-async function saveConfig(e) {
-    e.preventDefault();
-    const statusEl = $('settingsStatus');
-    statusEl.textContent = 'Saving…';
-    statusEl.style.color = 'var(--text-muted)';
-    try {
-        const tokenId = Number($('cfgToken').value) || null;
-        const payload = {
-            distribution_mode: document.querySelector('input[name="cfgMode"]:checked').value,
-            distribution_amount: $('cfgAmount').value,
-            distribution_interval_seconds: Number($('cfgInterval').value) || 10,
-            distribution_max_retries: Number($('cfgRetries').value) || 3,
-        };
-        if (tokenId) payload.distribution_token_id = tokenId;
-        await api('PUT', '/config', payload);
-        flash(statusEl, 'Saved');
-    } catch (e) {
-        flash(statusEl, `Error: ${e.message}`, true);
-    }
-}
-
 // ---- worker ----
 async function refreshWorker() {
+    const errEl = $('workerError');
     try {
         const s = await api('GET', '/worker');
-        const kvEl = $('workerKv');
-        kvEl.innerHTML = `
-            <div class="kv-row"><span class="kv-key">Status</span><span class="kv-val">${s.running ? '<span class="dist-pill running">Running</span>' : '<span class="dist-pill paused">Stopped</span>'}</span></div>
-            <div class="kv-row"><span class="kv-key">Mode</span><span class="kv-val">${escapeHtml(s.mode || '—')}</span></div>
-            <div class="kv-row"><span class="kv-key">Interval</span><span class="kv-val">${s.interval_seconds ? s.interval_seconds + 's' : '—'}</span></div>
-            <div class="kv-row"><span class="kv-key">Sent</span><span class="kv-val">${s.sent_total ?? 0}</span></div>
-            <div class="kv-row"><span class="kv-key">In Flight</span><span class="kv-val">${s.in_flight ?? 0}</span></div>
-            <div class="kv-row"><span class="kv-key">Last Tick</span><span class="kv-val">${s.last_tick_at ? new Date(s.last_tick_at).toLocaleTimeString() : '—'}</span></div>
-        `;
 
-        // Update KPI tiles
+        const badge = $('workerStatusBadge');
+        const statusText = $('workerStatusText');
+        if (s.running) {
+            badge.className = 'worker-badge worker-badge-running';
+            statusText.textContent = 'Running';
+        } else {
+            badge.className = 'worker-badge worker-badge-stopped';
+            statusText.textContent = 'Stopped';
+        }
+
+        const modeLabel = s.mode === 'all' ? 'All Wallets' : s.mode === 'random' ? 'Random' : (s.mode || '—');
+        $('wMode').textContent = modeLabel;
+        $('wInterval').textContent = s.interval_seconds ? `${s.interval_seconds}s` : '—';
+        $('wSent').textContent = String(s.sent_total ?? 0);
+        $('wInFlight').textContent = String(s.in_flight ?? 0);
+        $('wLastTick').textContent = s.last_tick_at ? new Date(s.last_tick_at).toLocaleTimeString() : '—';
+
         $('kpiPending').textContent = s.pending_sends ?? 0;
         $('kpiConfirmed').textContent = s.confirmed_total ?? 0;
         $('kpiFailed').textContent = s.failed_total ?? 0;
 
-        const errEl = $('workerError');
         if (s.last_error) {
             errEl.textContent = s.last_error;
             errEl.style.display = 'block';
@@ -182,46 +121,77 @@ async function refreshWorker() {
             errEl.style.display = 'none';
         }
     } catch (e) {
-        $('workerKv').innerHTML = `<div style="color:var(--accent-danger); font-size:12px;">Failed to load worker status: ${escapeHtml(e.message)}</div>`;
+        errEl.textContent = `Failed to load worker status: ${e.message}`;
+        errEl.style.display = 'block';
     }
 }
 
-// ---- sends log ----
+// ---- client-side sort on current page ----
+function sortData(items) {
+    if (!SORT_COL) return items;
+    return [...items].sort((a, b) => {
+        let av = a[SORT_COL] ?? '';
+        let bv = b[SORT_COL] ?? '';
+        let cmp;
+        if (typeof av === 'number' && typeof bv === 'number') {
+            cmp = av - bv;
+        } else if (SORT_COL === 'created_at') {
+            cmp = new Date(av) - new Date(bv);
+        } else {
+            cmp = String(av).localeCompare(String(bv));
+        }
+        return SORT_DIR === 'asc' ? cmp : -cmp;
+    });
+}
+
+function updateSortHeaders() {
+    document.querySelectorAll('#sendsTable th.sortable').forEach(th => {
+        th.classList.remove('sort-active', 'sort-asc', 'sort-desc');
+        if (th.dataset.col === SORT_COL) {
+            th.classList.add('sort-active', SORT_DIR === 'asc' ? 'sort-asc' : 'sort-desc');
+        }
+    });
+}
+
+// ---- dispatch history ----
 async function loadSends() {
     const tbodyEl = $('sendsTbody');
     tbodyEl.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:24px;">Loading…</td></tr>';
     try {
         const qp = new URLSearchParams({
-            limit: String(SENDS_LIMIT),
+            limit: String(SENDS_PAGE_SIZE),
             offset: String(SENDS_OFFSET),
         });
         if (SENDS_STATUS_FILTER) qp.set('status', SENDS_STATUS_FILTER);
         if (SENDS_ADDRESS_FILTER) qp.set('to_address', SENDS_ADDRESS_FILTER);
         const data = await api('GET', `/sends?${qp}`);
-        const items = data.items || [];
+        const items = sortData(data.items || []);
+        const total = data.total;
 
         if (items.length === 0) {
             tbodyEl.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:24px;">No sends found.</td></tr>';
         } else {
             tbodyEl.innerHTML = items.map(s => `
                 <tr>
-                    <td><span class="mono" title="${escapeHtml(s.to_address)}">${escapeHtml(s.to_address)}</span></td>
+                    <td><span class="addr" title="${escapeHtml(s.to_address)}">${escapeHtml(s.to_address)}</span></td>
                     <td><span class="mono" title="${escapeHtml(s.wallet_address || '')}">${shortAddr(s.wallet_address)}</span></td>
-                    <td class="mono">${fmtNum(s.amount)} ${escapeHtml(s.token_symbol || '')}</td>
+                    <td class="mono">${fmtNum(s.amount)} <span style="color:var(--text-muted);">${escapeHtml(s.token_symbol || '')}</span></td>
                     <td>${pill(s.status)}</td>
                     <td>${etherscanTx(s.tx_hash)}</td>
-                    <td class="mono">${s.attempts}</td>
-                    <td style="font-size:11px; color:var(--text-secondary);">${s.created_at ? new Date(s.created_at).toLocaleString() : '—'}</td>
+                    <td class="mono" style="text-align:center;">${s.attempts}</td>
+                    <td style="font-size:11px; color:var(--text-secondary); white-space:nowrap;">${s.created_at ? new Date(s.created_at).toLocaleString() : '—'}</td>
                 </tr>
             `).join('');
         }
 
-        // Pagination
-        const from = SENDS_OFFSET + 1;
-        const to = Math.min(SENDS_OFFSET + SENDS_LIMIT, data.total);
-        $('sendsPageInfo').textContent = data.total > 0 ? `${from}–${to} of ${data.total}` : '0 results';
+        const from = total > 0 ? SENDS_OFFSET + 1 : 0;
+        const to = Math.min(SENDS_OFFSET + SENDS_PAGE_SIZE, total);
+        $('sendsPageInfo').textContent = total > 0 ? `${from}–${to}` : '0';
+        $('dtInfo').textContent = total > 0
+            ? `Showing ${from}–${to} of ${total.toLocaleString()} records`
+            : 'No records found';
         $('sendsPrev').disabled = SENDS_OFFSET === 0;
-        $('sendsNext').disabled = (SENDS_OFFSET + SENDS_LIMIT) >= data.total;
+        $('sendsNext').disabled = (SENDS_OFFSET + SENDS_PAGE_SIZE) >= total;
     } catch (e) {
         tbodyEl.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--accent-danger); padding:24px;">${escapeHtml(e.message)}</td></tr>`;
     }
@@ -241,7 +211,7 @@ async function resetSends() {
     try {
         const body = {};
         if (addressFilter) body.address = addressFilter;
-        if (statusFilter) body.status = statusFilter; else body.status = 'all';
+        body.status = statusFilter || 'all';
         const result = await api('POST', '/sends/reset', body);
         alert(`Deleted ${result.deleted} send record(s).`);
         SENDS_OFFSET = 0;
@@ -260,8 +230,9 @@ document.addEventListener('DOMContentLoaded', () => {
             await api('POST', '/worker/start');
             await refreshWorker();
         } catch (e) {
-            $('workerError').textContent = e.message;
-            $('workerError').style.display = 'block';
+            const errEl = $('workerError');
+            errEl.textContent = e.message;
+            errEl.style.display = 'block';
         }
     });
     $('workerStopBtn').addEventListener('click', async () => {
@@ -269,16 +240,14 @@ document.addEventListener('DOMContentLoaded', () => {
             await api('POST', '/worker/stop');
             await refreshWorker();
         } catch (e) {
-            $('workerError').textContent = e.message;
-            $('workerError').style.display = 'block';
+            const errEl = $('workerError');
+            errEl.textContent = e.message;
+            errEl.style.display = 'block';
         }
     });
     $('workerRefreshBtn').addEventListener('click', refreshWorker);
 
-    // Settings form
-    $('settingsForm').addEventListener('submit', saveConfig);
-
-    // Sends log controls
+    // Table controls
     $('sendsRefreshBtn').addEventListener('click', () => { SENDS_OFFSET = 0; loadSends(); });
     $('sendsStatusFilter').addEventListener('change', (e) => {
         SENDS_STATUS_FILTER = e.target.value;
@@ -291,22 +260,43 @@ document.addEventListener('DOMContentLoaded', () => {
         loadSends();
     }, 400));
     $('sendsResetBtn').addEventListener('click', resetSends);
+
+    // Page size
+    $('sendsPageSize').addEventListener('change', (e) => {
+        SENDS_PAGE_SIZE = Number(e.target.value) || 50;
+        SENDS_OFFSET = 0;
+        loadSends();
+    });
+
+    // Pagination
     $('sendsPrev').addEventListener('click', () => {
-        SENDS_OFFSET = Math.max(0, SENDS_OFFSET - SENDS_LIMIT);
+        SENDS_OFFSET = Math.max(0, SENDS_OFFSET - SENDS_PAGE_SIZE);
         loadSends();
     });
     $('sendsNext').addEventListener('click', () => {
-        SENDS_OFFSET += SENDS_LIMIT;
+        SENDS_OFFSET += SENDS_PAGE_SIZE;
         loadSends();
     });
 
-    // Initial load
-    loadTokens().then(() => loadConfig());
+    // Sort headers
+    document.querySelectorAll('#sendsTable th.sortable').forEach(th => {
+        th.addEventListener('click', () => {
+            const col = th.dataset.col;
+            if (SORT_COL === col) {
+                SORT_DIR = SORT_DIR === 'asc' ? 'desc' : 'asc';
+            } else {
+                SORT_COL = col;
+                SORT_DIR = col === 'created_at' ? 'desc' : 'asc';
+            }
+            updateSortHeaders();
+            loadSends();
+        });
+    });
+
+    updateSortHeaders();
+
+    // Initial data load
     loadWalletsKpi();
     refreshWorker();
     loadSends();
-
-    // Auto-refresh
-    setInterval(refreshWorker, 5000);
-    setInterval(loadSends, 8000);
 });

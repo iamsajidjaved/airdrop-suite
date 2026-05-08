@@ -58,7 +58,7 @@
     <header class="app-header">
         <div class="header-title-group">
             <div class="header-page-title">Airdrop</div>
-            <div class="header-breadcrumb"><span>Home</span><span>›</span><span>Airdrop</span><span>›</span><span>Sends</span></div>
+            <div class="header-breadcrumb"><span>Home</span><span>›</span><span>Airdrop</span></div>
         </div>
         <div></div>
     </header>
@@ -108,92 +108,101 @@
             </div>
 
             <!-- WORKER CARD -->
-            <div class="card admin-card">
-                <h2 class="admin-card-title">Worker</h2>
-                <p class="admin-card-sub">Background loop that signs and broadcasts ERC‑20 transfers.</p>
-                <div class="kv-grid" id="workerKv"></div>
-                <div style="display:flex; gap:8px; margin-top:16px; flex-wrap:wrap;">
-                    <button id="workerStartBtn" class="btn btn-primary" style="font-size:12px;">Start</button>
-                    <button id="workerStopBtn" class="btn btn-secondary" style="font-size:12px;">Stop</button>
-                    <button id="workerRefreshBtn" class="btn btn-secondary" style="font-size:12px;">Refresh</button>
+            <div class="card admin-card admin-card-wide">
+                <div class="worker-header">
+                    <div class="worker-title-group">
+                        <h2 class="admin-card-title">Worker</h2>
+                        <p class="admin-card-sub">Background loop that signs and broadcasts ERC-20 transfers. Configure via <a href="/admin/settings#airdrop" style="color:var(--accent-blue); text-decoration:none;">Settings → Airdrop</a>.</p>
+                    </div>
+                    <div class="worker-controls">
+                        <span id="workerStatusBadge" class="worker-badge worker-badge-stopped">
+                            <span class="worker-badge-dot"></span>
+                            <span id="workerStatusText">Stopped</span>
+                        </span>
+                        <button id="workerStartBtn" class="btn btn-primary btn-sm">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="margin-right:4px;"><polygon points="5 3 19 12 5 21 5 3"/></svg>Start
+                        </button>
+                        <button id="workerStopBtn" class="btn btn-secondary btn-sm">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="margin-right:4px;"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>Stop
+                        </button>
+                        <button id="workerRefreshBtn" class="btn btn-secondary btn-sm">Refresh</button>
+                    </div>
                 </div>
-                <div id="workerError" class="admin-error" style="display:none; margin-top:12px;"></div>
+
+                <div class="worker-stats-bar">
+                    <div class="worker-stat-item">
+                        <div class="worker-stat-label">Mode</div>
+                        <div class="worker-stat-value" id="wMode">—</div>
+                    </div>
+                    <div class="worker-stat-sep"></div>
+                    <div class="worker-stat-item">
+                        <div class="worker-stat-label">Interval</div>
+                        <div class="worker-stat-value" id="wInterval">—</div>
+                    </div>
+                    <div class="worker-stat-sep"></div>
+                    <div class="worker-stat-item">
+                        <div class="worker-stat-label">Total Sent</div>
+                        <div class="worker-stat-value" id="wSent">—</div>
+                    </div>
+                    <div class="worker-stat-sep"></div>
+                    <div class="worker-stat-item">
+                        <div class="worker-stat-label">In Flight</div>
+                        <div class="worker-stat-value" id="wInFlight">—</div>
+                    </div>
+                    <div class="worker-stat-sep"></div>
+                    <div class="worker-stat-item">
+                        <div class="worker-stat-label">Last Tick</div>
+                        <div class="worker-stat-value worker-stat-mono" id="wLastTick">—</div>
+                    </div>
+                </div>
+
+                <div id="workerError" class="admin-error" style="display:none; margin-top:16px;"></div>
             </div>
 
-            <!-- SETTINGS CARD -->
-            <div class="card admin-card">
-                <h2 class="admin-card-title">Settings</h2>
-                <p class="admin-card-sub">Configure what the worker sends and how.</p>
-                <form id="settingsForm">
-                    <div class="input-group">
-                        <label for="cfgToken">Token to airdrop</label>
-                        <select id="cfgToken" class="wallet-input">
-                            <option value="">— select token —</option>
-                        </select>
-                    </div>
-                    <div class="input-group">
-                        <label for="cfgAmount">Amount per send (token units)</label>
-                        <input type="number" id="cfgAmount" class="wallet-input" min="0" step="any" placeholder="1.0">
-                    </div>
-                    <div class="input-group">
-                        <label>Distribution mode</label>
-                        <div style="display:flex; gap:16px; align-items:center; flex-wrap:wrap; margin-top:4px;">
-                            <label style="display:flex; align-items:center; gap:6px; font-weight:400; font-size:13px;">
-                                <input type="radio" name="cfgMode" value="all" checked>
-                                All Wallets — every active sender sends to each receiver
-                            </label>
-                            <label style="display:flex; align-items:center; gap:6px; font-weight:400; font-size:13px;">
-                                <input type="radio" name="cfgMode" value="random">
-                                Random Wallet — one randomly chosen sender per receiver
-                            </label>
-                        </div>
-                    </div>
-                    <div class="input-group">
-                        <label for="cfgInterval">Worker interval (seconds)</label>
-                        <input type="number" id="cfgInterval" class="wallet-input" min="1" step="1" placeholder="10">
-                    </div>
-                    <div class="input-group">
-                        <label for="cfgRetries">Max retries per send</label>
-                        <input type="number" id="cfgRetries" class="wallet-input" min="1" step="1" placeholder="3">
-                    </div>
-                    <div id="settingsStatus" style="font-size:12px; color:var(--accent-success); min-height:18px;"></div>
-                    <div style="display:flex; gap:8px; margin-top:8px;">
-                        <button type="submit" class="btn btn-primary" style="font-size:12px;">Save Settings</button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- SEND LOG TABLE -->
+            <!-- DISPATCH HISTORY TABLE -->
             <div class="card admin-card admin-card-wide">
                 <div class="admin-card-header-row">
                     <div>
-                        <h2 class="admin-card-title">Send Log</h2>
-                        <p class="admin-card-sub">History of all airdrop sends enqueued by the worker.</p>
+                        <h2 class="admin-card-title">Dispatch History</h2>
+                        <p class="admin-card-sub">Complete record of all airdrop sends enqueued and processed by the worker.</p>
                     </div>
-                    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-                        <select id="sendsStatusFilter" class="wallet-input" style="min-width:130px;">
+                    <button id="sendsResetBtn" class="btn btn-secondary btn-sm" style="color:var(--accent-danger); border-color:rgba(241,65,108,0.3);">Reset Sends</button>
+                </div>
+
+                <div class="dt-toolbar">
+                    <div class="dt-filters">
+                        <select id="sendsStatusFilter" class="wallet-input dt-select">
                             <option value="">All statuses</option>
-                            <option value="pending">pending</option>
-                            <option value="broadcast">broadcast</option>
-                            <option value="confirmed">confirmed</option>
-                            <option value="failed">failed</option>
+                            <option value="pending">Pending</option>
+                            <option value="broadcast">Broadcast</option>
+                            <option value="confirmed">Confirmed</option>
+                            <option value="failed">Failed</option>
                         </select>
-                        <input type="text" id="sendsAddressFilter" class="wallet-input" placeholder="Filter by address…" style="min-width:200px;">
-                        <button id="sendsResetBtn" class="btn btn-secondary" style="font-size:12px; color:var(--accent-danger);">Reset Sends</button>
-                        <button id="sendsRefreshBtn" class="btn btn-secondary" style="font-size:12px;">Refresh</button>
+                        <input type="text" id="sendsAddressFilter" class="wallet-input dt-search" placeholder="Search by address…">
+                        <button id="sendsRefreshBtn" class="btn btn-secondary btn-sm">Refresh</button>
+                    </div>
+                    <div class="dt-page-size-wrap">
+                        <label for="sendsPageSize" class="dt-label">Rows per page:</label>
+                        <select id="sendsPageSize" class="wallet-input dt-select-sm">
+                            <option value="10">10</option>
+                            <option value="25">25</option>
+                            <option value="50" selected>50</option>
+                            <option value="100">100</option>
+                        </select>
                     </div>
                 </div>
+
                 <div class="table-wrapper">
                     <table id="sendsTable">
                         <thead>
                             <tr>
-                                <th>Receiving Address</th>
-                                <th>Sender Wallet</th>
-                                <th>Amount</th>
-                                <th>Status</th>
+                                <th class="sortable" data-col="to_address">Receiving Address</th>
+                                <th class="sortable" data-col="wallet_address">Sender</th>
+                                <th class="sortable" data-col="amount">Amount</th>
+                                <th class="sortable" data-col="status">Status</th>
                                 <th>Tx Hash</th>
-                                <th>Attempts</th>
-                                <th>Created</th>
+                                <th class="sortable" data-col="attempts">Attempts</th>
+                                <th class="sortable sort-active sort-desc" data-col="created_at">Created</th>
                             </tr>
                         </thead>
                         <tbody id="sendsTbody">
@@ -201,10 +210,14 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="pagination-row">
-                    <button id="sendsPrev" class="btn btn-secondary" style="font-size:12px;">Prev</button>
-                    <span id="sendsPageInfo" style="color:var(--text-secondary); font-size:12px;"></span>
-                    <button id="sendsNext" class="btn btn-secondary" style="font-size:12px;">Next</button>
+
+                <div class="dt-footer">
+                    <div class="dt-info" id="dtInfo">—</div>
+                    <div class="dt-pagination">
+                        <button id="sendsPrev" class="btn btn-secondary btn-sm">‹ Previous</button>
+                        <span id="sendsPageInfo" class="page-info"></span>
+                        <button id="sendsNext" class="btn btn-secondary btn-sm">Next ›</button>
+                    </div>
                 </div>
             </div>
 

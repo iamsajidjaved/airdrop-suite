@@ -28,7 +28,13 @@
       "Bash(Start-Sleep -Seconds 3)",
       "Bash(Invoke-RestMethod -Uri \"http://127.0.0.1:8000/api/health\" -Method GET)",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Sajid\\\\Documents\\\\wallet-explorer\" -Directory)",
-      "Bash(xargs grep -l \"campaign\\\\|distribution\")"
+      "Bash(xargs grep -l \"campaign\\\\|distribution\")",
+      "Bash(Start-Process -NoNewWindow -FilePath \"uv\" -ArgumentList \"run\",\"uvicorn\",\"backend.main:app\",\"--reload\",\"--host\",\"127.0.0.1\",\"--port\",\"8000\")",
+      "Bash(Start-Sleep -Seconds 4)",
+      "Bash(Invoke-WebRequest -Uri \"http://127.0.0.1:8000/admin/airdrop\" -UseBasicParsing)",
+      "Bash(Select-Object -ExpandProperty StatusCode)",
+      "PowerShell(Start-Sleep -Seconds 3; Invoke-WebRequest -Uri \"http://127.0.0.1:8000/admin/airdrop\" -UseBasicParsing | Select-Object -ExpandProperty StatusCode)",
+      "mcp__playwright__browser_take_screenshot"
     ]
   }
 }
