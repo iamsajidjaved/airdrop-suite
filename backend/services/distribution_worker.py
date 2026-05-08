@@ -160,8 +160,27 @@ class DistributionWorker:
             return
 
         async with async_session_factory() as session:
+            # Clean up pending sends whose wallet was deactivated so they can
+            # be re-assigned to an active wallet on this tick.
+            await session.execute(
+                text(
+                    """
+                    DELETE FROM airdrop_sends
+                    WHERE status = 'pending'
+                      AND wallet_id NOT IN (
+                          SELECT id FROM distribution_wallets WHERE is_active = true
+                      )
+                    """
+                )
+            )
+            await session.commit()
+
+        async with async_session_factory() as session:
             if self._state.mode == "random":
                 # One randomly-chosen active wallet per address.
+                # Exclude addresses that already have a non-failed send (in-progress
+                # or confirmed) or that have exhausted all retries (failed send count
+                # >= max_retries), to prevent infinite re-enqueue loops.
                 await session.execute(
                     text(
                         """
@@ -177,13 +196,18 @@ class DistributionWorker:
                               WHERE s.to_address = at.to_address
                                 AND s.status != 'failed'
                           )
+                          AND (
+                              SELECT COUNT(*) FROM airdrop_sends s
+                              WHERE s.to_address = at.to_address
+                                AND s.status = 'failed'
+                          ) < :max_retries
                         ORDER BY at.to_address, random()
                         LIMIT 50
                         ON CONFLICT ON CONSTRAINT uq_airdrop_sends_address_wallet
                         DO NOTHING
                         """
                     ),
-                    {"token_id": token_id, "amount": str(amount)},
+                    {"token_id": token_id, "amount": str(amount), "max_retries": int(cfg.get("distribution_max_retries", "3"))},
                 )
             else:
                 # All active wallets each send to every address.
@@ -202,12 +226,18 @@ class DistributionWorker:
                                 AND s.wallet_id = dw.id
                                 AND s.status != 'failed'
                           )
+                          AND (
+                              SELECT COUNT(*) FROM airdrop_sends s
+                              WHERE s.to_address = at.to_address
+                                AND s.wallet_id = dw.id
+                                AND s.status = 'failed'
+                          ) < :max_retries
                         LIMIT 50
                         ON CONFLICT ON CONSTRAINT uq_airdrop_sends_address_wallet
                         DO NOTHING
                         """
                     ),
-                    {"token_id": token_id, "amount": str(amount)},
+                    {"token_id": token_id, "amount": str(amount), "max_retries": int(cfg.get("distribution_max_retries", "3"))},
                 )
             await session.commit()
 

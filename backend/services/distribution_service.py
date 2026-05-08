@@ -12,7 +12,7 @@ from decimal import Decimal
 from typing import Optional
 
 from eth_account import Account
-from sqlalchemy import and_, delete, func, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -188,24 +188,3 @@ async def list_sends(
     return total, rows
 
 
-async def reset_sends(
-    session: AsyncSession,
-    *,
-    address: Optional[str] = None,
-    status_filter: Optional[str] = None,
-) -> int:
-    """Delete airdrop_sends rows so they will be re-queued. Returns deleted count.
-
-    Rows with status='broadcast' are never deleted (they may have on-chain txs
-    pending confirmation).
-    """
-    where = [AirdropSend.status != "broadcast"]
-    if address:
-        where.append(AirdropSend.to_address == address.lower())
-    if status_filter and status_filter != "all":
-        where.append(AirdropSend.status == status_filter)
-
-    stmt = delete(AirdropSend).where(and_(*where))
-    result = await session.execute(stmt)
-    await session.commit()
-    return int(result.rowcount or 0)

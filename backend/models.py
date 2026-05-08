@@ -307,6 +307,3 @@ class AirdropSendListResponse(BaseModel):
     items: list[AirdropSendOut]
 
 
-class SendsResetRequest(BaseModel):
-    address: Optional[str] = None
-    status: Optional[Literal["failed", "all"]] = None

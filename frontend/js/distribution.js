@@ -98,9 +98,13 @@ async function refreshWorker() {
         if (s.running) {
             badge.className = 'worker-badge worker-badge-running';
             statusText.textContent = 'Running';
+            $('workerStartBtn').style.display = 'none';
+            $('workerStopBtn').style.display = '';
         } else {
             badge.className = 'worker-badge worker-badge-stopped';
             statusText.textContent = 'Stopped';
+            $('workerStartBtn').style.display = '';
+            $('workerStopBtn').style.display = 'none';
         }
 
         const modeLabel = s.mode === 'all' ? 'All Wallets' : s.mode === 'random' ? 'Random' : (s.mode || '—');
@@ -197,31 +201,6 @@ async function loadSends() {
     }
 }
 
-async function resetSends() {
-    const statusFilter = $('sendsStatusFilter').value;
-    const addressFilter = $('sendsAddressFilter').value.trim();
-    const scopeDesc = addressFilter
-        ? `sends for address ${addressFilter}${statusFilter ? ` with status "${statusFilter}"` : ''}`
-        : statusFilter
-            ? `all "${statusFilter}" sends`
-            : 'ALL sends (except in-flight broadcasts)';
-
-    if (!confirm(`This will delete ${scopeDesc} so they will be re-queued on the next worker tick.\n\nProceed?`)) return;
-
-    try {
-        const body = {};
-        if (addressFilter) body.address = addressFilter;
-        body.status = statusFilter || 'all';
-        const result = await api('POST', '/sends/reset', body);
-        alert(`Deleted ${result.deleted} send record(s).`);
-        SENDS_OFFSET = 0;
-        await loadSends();
-        await refreshWorker();
-    } catch (e) {
-        alert(`Reset failed: ${e.message}`);
-    }
-}
-
 // ---- init ----
 document.addEventListener('DOMContentLoaded', () => {
     // Worker controls
@@ -259,7 +238,6 @@ document.addEventListener('DOMContentLoaded', () => {
         SENDS_OFFSET = 0;
         loadSends();
     }, 400));
-    $('sendsResetBtn').addEventListener('click', resetSends);
 
     // Page size
     $('sendsPageSize').addEventListener('change', (e) => {

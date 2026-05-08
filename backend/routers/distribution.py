@@ -22,7 +22,6 @@ from backend.models import (
     DistributionWalletOut,
     DistributionWalletUpdate,
     DistributionWorkerState,
-    SendsResetRequest,
 )
 from backend.services import distribution_service as dist
 from backend.services.crypto import CryptoUnavailable
@@ -240,14 +239,3 @@ async def list_sends(
     return AirdropSendListResponse(total=total, limit=limit, offset=offset, items=items)
 
 
-@router.post("/sends/reset", dependencies=[Depends(require_admin)])
-async def reset_sends(
-    payload: SendsResetRequest,
-    session: AsyncSession = Depends(get_session),
-):
-    deleted = await dist.reset_sends(
-        session,
-        address=payload.address,
-        status_filter=payload.status,
-    )
-    return {"deleted": deleted}
