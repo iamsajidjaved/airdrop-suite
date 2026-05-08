@@ -294,25 +294,33 @@ class DistributionWorker:
     async def _claim_send(
         self, session: AsyncSession, wallet_id: int
     ) -> Optional[AirdropSend]:
-        """SELECT … FOR UPDATE SKIP LOCKED — atomically claim one pending send."""
-        stmt = (
-            select(AirdropSend)
-            .where(
-                AirdropSend.status == "pending",
-                AirdropSend.wallet_id == wallet_id,
-            )
-            .order_by(AirdropSend.id)
-            .limit(1)
-            .with_for_update(skip_locked=True)
+        """Atomically claim one pending send for the given wallet.
+
+        Uses a raw UPDATE…RETURNING so the inner FOR UPDATE SKIP LOCKED only
+        locks airdrop_sends rows — not the joined token/wallet tables, which
+        the ORM's lazy="joined" would otherwise pull in and cause every row to
+        be skipped under concurrent access.
+        """
+        result = await session.execute(
+            text("""
+                UPDATE airdrop_sends
+                SET status = 'broadcast', attempts = attempts + 1
+                WHERE id = (
+                    SELECT id FROM airdrop_sends
+                    WHERE status = 'pending' AND wallet_id = :wallet_id
+                    ORDER BY id
+                    LIMIT 1
+                    FOR UPDATE OF airdrop_sends SKIP LOCKED
+                )
+                RETURNING id
+            """),
+            {"wallet_id": wallet_id},
         )
-        send = (await session.execute(stmt)).scalar_one_or_none()
-        if send is None:
+        row = result.fetchone()
+        if row is None:
             return None
-        send.status = "broadcast"
-        send.attempts += 1
         await session.commit()
-        await session.refresh(send)
-        return send
+        return await session.get(AirdropSend, row[0])
 
     async def _send_transfer(
         self, session: AsyncSession, send_id: int, wallet_id: int

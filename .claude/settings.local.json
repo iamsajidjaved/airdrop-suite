@@ -34,7 +34,12 @@
       "Bash(Invoke-WebRequest -Uri \"http://127.0.0.1:8000/admin/airdrop\" -UseBasicParsing)",
       "Bash(Select-Object -ExpandProperty StatusCode)",
       "PowerShell(Start-Sleep -Seconds 3; Invoke-WebRequest -Uri \"http://127.0.0.1:8000/admin/airdrop\" -UseBasicParsing | Select-Object -ExpandProperty StatusCode)",
-      "mcp__playwright__browser_take_screenshot"
+      "mcp__playwright__browser_take_screenshot",
+      "Bash(netstat -ano)",
+      "Bash(findstr \":8000\")",
+      "Bash(Get-Process -Name \"python*\",\"uvicorn*\" -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object Id, ProcessName, CPU)",
+      "Bash(Write-Host \"waited\")"
     ]
   }
 }
