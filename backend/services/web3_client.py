@@ -66,7 +66,7 @@ def get_web3() -> AsyncWeb3:
             "ETH_RPC_URL is not configured. Set it in .env to enable wallet "
             "balance lookups and the distribution worker."
         )
-    return AsyncWeb3(AsyncHTTPProvider(url, request_kwargs={"timeout": 10}))
+    return AsyncWeb3(AsyncHTTPProvider(url, request_kwargs={"timeout": 30}))
 
 
 def to_checksum(address: str) -> str:

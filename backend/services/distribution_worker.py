@@ -112,6 +112,9 @@ class DistributionWorker:
             try:
                 await self._enqueue_tick()
                 await self._send_tick()
+            except TimeoutError as e:  # noqa: BLE001
+                self._state.last_error = "tick: TimeoutError: DB or RPC call timed out — check ETH_RPC_URL and database connectivity"
+                logger.warning("send loop tick timed out (DB or RPC): %s", e)
             except Exception as e:  # noqa: BLE001
                 self._state.last_error = f"tick: {type(e).__name__}: {e}"
                 logger.exception("send loop tick failed: %s", e)
