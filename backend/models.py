@@ -289,6 +289,7 @@ class AirdropSendOut(BaseModel):
     to_address: str
     token_id: int
     token_symbol: Optional[str] = None
+    network: Optional[str] = None
     wallet_id: int
     wallet_address: Optional[str] = None
     amount: Decimal

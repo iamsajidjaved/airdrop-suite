@@ -1,0 +1,102 @@
+- generic [active] [ref=e1]:
+  - complementary [ref=e2]:
+    - link "Airdrop Suite" [ref=e3] [cursor=pointer]:
+      - /url: /
+      - img [ref=e5]
+      - generic [ref=e8]: Airdrop Suite
+    - navigation [ref=e9]:
+      - generic [ref=e10]: Main Menu
+      - link "Explorer" [ref=e11] [cursor=pointer]:
+        - /url: /
+        - img [ref=e12]
+        - text: Explorer
+      - link "Scanner" [ref=e17] [cursor=pointer]:
+        - /url: /admin/scanner
+        - img [ref=e18]
+        - text: Scanner
+      - link "Airdrop" [ref=e21] [cursor=pointer]:
+        - /url: /admin/airdrop
+        - img [ref=e22]
+        - text: Airdrop
+      - link "Settings" [ref=e24] [cursor=pointer]:
+        - /url: /admin/settings
+        - img [ref=e25]
+        - text: Settings
+  - banner [ref=e28]:
+    - generic [ref=e29]:
+      - generic [ref=e30]: Scanner
+      - generic [ref=e31]:
+        - generic [ref=e32]: Home
+        - generic [ref=e33]: ›
+        - generic [ref=e34]: Scanner
+    - generic [ref=e35]:
+      - generic "Switch active blockchain network" [ref=e36]:
+        - combobox "Active network" [ref=e38] [cursor=pointer]:
+          - option "Ethereum Mainnet"
+          - option "Sepolia Testnet" [selected]
+      - button "Run Scan" [ref=e39] [cursor=pointer]:
+        - img [ref=e40]
+        - text: Run Scan
+  - main [ref=e42]:
+    - generic [ref=e43]:
+      - generic [ref=e44]:
+        - generic [ref=e45]:
+          - img [ref=e47]
+          - generic [ref=e49]:
+            - generic [ref=e50]: Stored Transfers
+            - generic [ref=e51]: —
+        - generic [ref=e52]:
+          - img [ref=e54]
+          - generic [ref=e57]:
+            - generic [ref=e58]: Active Tokens
+            - generic [ref=e59]: —
+        - generic [ref=e60]:
+          - img [ref=e62]
+          - generic [ref=e64]:
+            - generic [ref=e65]: Min Threshold (USD)
+            - generic [ref=e66]: —
+        - generic [ref=e67]:
+          - img [ref=e69]
+          - generic [ref=e72]:
+            - generic [ref=e73]: Last Scan (UTC)
+            - generic [ref=e74]: —
+      - generic [ref=e75]:
+        - heading "Scanner Status" [level=2] [ref=e76]
+        - paragraph [ref=e77]:
+          - text: Per-token resume points. The scanner runs only when you click
+          - strong [ref=e78]: Run Scan
+          - text: .
+        - generic [ref=e79]:
+          - generic [ref=e80]:
+            - generic [ref=e81]: Total Transfers Stored
+            - generic [ref=e82]: —
+          - generic [ref=e83]:
+            - generic [ref=e84]: Last Scan
+            - generic [ref=e85]: —
+          - generic [ref=e86]:
+            - generic [ref=e87]: Last Scanned Block (per token)
+            - generic [ref=e88]: —
+      - generic [ref=e89]:
+        - generic [ref=e90]:
+          - generic [ref=e91]:
+            - heading "Qualifying Transactions" [level=2] [ref=e92]
+            - paragraph [ref=e93]: Transfers ≥ threshold captured on the active network.
+          - generic [ref=e94]:
+            - combobox [ref=e95] [cursor=pointer]:
+              - option "All tokens" [selected]
+            - button "Refresh" [ref=e96] [cursor=pointer]
+        - table [ref=e98]:
+          - rowgroup [ref=e99]:
+            - row "Time (UTC) Token Amount From To Tx" [ref=e100]:
+              - columnheader "Time (UTC)" [ref=e101] [cursor=pointer]
+              - columnheader "Token" [ref=e102] [cursor=pointer]
+              - columnheader "Amount" [ref=e103] [cursor=pointer]
+              - columnheader "From" [ref=e104] [cursor=pointer]
+              - columnheader "To" [ref=e105] [cursor=pointer]
+              - columnheader "Tx" [ref=e106] [cursor=pointer]
+          - rowgroup [ref=e107]:
+            - row "Loading…" [ref=e108]:
+              - cell "Loading…" [ref=e109]
+        - generic [ref=e110]:
+          - button "‹ Prev" [ref=e111] [cursor=pointer]
+          - button "Next ›" [ref=e113] [cursor=pointer]

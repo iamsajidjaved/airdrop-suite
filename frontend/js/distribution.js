@@ -53,12 +53,12 @@ const NETWORK_EXPLORERS = {
     sepolia:  'https://sepolia.etherscan.io/tx',
     holesky:  'https://holesky.etherscan.io/tx',
 };
-let EXPLORER_TX_BASE = NETWORK_EXPLORERS.ethereum;
 
-function etherscanTx(hash) {
+function etherscanTx(hash, network) {
     if (!hash) return '—';
+    const base = NETWORK_EXPLORERS[(network || 'ethereum').toLowerCase()] || NETWORK_EXPLORERS.ethereum;
     const short = `${hash.slice(0, 10)}…`;
-    return `<a href="${EXPLORER_TX_BASE}/${escapeHtml(hash)}" target="_blank" rel="noopener" style="color:var(--accent-primary); text-decoration:none; font-family:monospace; font-size:11px;">${short}</a>`;
+    return `<a href="${base}/${escapeHtml(hash)}" target="_blank" rel="noopener" style="color:var(--accent-primary); text-decoration:none; font-family:monospace; font-size:11px;">${short}</a>`;
 }
 
 function debounce(fn, delay) {
@@ -181,7 +181,7 @@ async function loadSends() {
                     <td><span class="mono" title="${escapeHtml(s.wallet_address || '')}">${shortAddr(s.wallet_address)}</span></td>
                     <td class="mono">${fmtNum(s.amount)} <span style="color:var(--text-muted);">${escapeHtml(s.token_symbol || '')}</span></td>
                     <td>${pill(s.status)}</td>
-                    <td>${etherscanTx(s.tx_hash)}</td>
+                    <td>${etherscanTx(s.tx_hash, s.network)}</td>
                     <td class="mono" style="text-align:center;">${s.attempts}</td>
                     <td style="font-size:11px; color:var(--text-secondary); white-space:nowrap;">${s.created_at ? new Date(s.created_at).toLocaleString() : '—'}</td>
                 </tr>
