@@ -6,25 +6,29 @@ Vanilla HTML / CSS / JS. **No build step, no framework, no npm.** FastAPI serves
 
 ```
 frontend/
-├── index.html       wallet input page (entry point at "/")
-├── explorer.html    transaction dashboard (served at "/explorer")
-├── admin.html       airdrop admin (served at "/admin/airdrop")
+├── index.html          wallet input page (entry point at "/")
+├── explorer.html       transaction dashboard (served at "/explorer")
+├── admin.html          scanner admin — iGaming brands, qualifying transactions (served at "/admin/scanner")
+├── distribution.html   airdrop campaigns admin (served at "/admin/airdrop")
+├── settings.html       settings — tokens, thresholds, distribution wallets (served at "/admin/settings")
 ├── css/
-│   ├── styles.css   shared styles, dark theme
-│   └── admin.css    admin-specific overrides
+│   ├── styles.css      shared styles, dark theme
+│   └── admin.css       admin-specific overrides
 └── js/
-    ├── wallet.js    used by index.html — input validation + redirect to /explorer
-    ├── explorer.js  used by explorer.html — fetch, filter, paginate, CSV export
-    └── admin.js     used by admin.html — token CRUD, threshold config, monitor trigger
+    ├── wallet.js       used by index.html — input validation + redirect to /explorer
+    ├── explorer.js     used by explorer.html — fetch, filter, paginate, CSV export
+    ├── admin.js        used by admin.html — scanner status, iGaming brands CRUD, transactions
+    ├── distribution.js used by distribution.html — campaign + send management
+    └── settings.js     used by settings.html — token CRUD, threshold, wallets
 ```
 
-JS files map 1:1 to pages. Pages reference assets at `/static/...` (mount defined in `backend/main.py:50-53`).
+JS files map 1:1 to pages. Pages reference assets at `/static/...` (mount defined in `backend/main.py`).
 
 ## How serving works
 
-- Page routes (`/`, `/explorer`, `/admin/airdrop`) return the corresponding HTML file via `FileResponse`. See `backend/main.py:56-80`.
+- Page routes (`/`, `/explorer`, `/admin/scanner`, etc.) return the corresponding HTML file via `FileResponse`. See `backend/main.py`.
 - Everything else (`/static/css/...`, `/static/js/...`) is served by FastAPI's `StaticFiles` mount.
-- A middleware adds `Cache-Control: no-store` to every `/static/*` response (`backend/main.py:41-48`). **This means you don't need to cache-bust during development** — every refresh fetches fresh JS/CSS. If you change something and don't see it, it's not a cache problem; check the network tab and console.
+- A middleware adds `Cache-Control: no-store` to every `/static/*` response (`backend/main.py:58-66`). **This means you don't need to cache-bust during development** — every refresh fetches fresh JS/CSS. If you change something and don't see it, it's not a cache problem; check the network tab and console.
 
 ## State patterns
 
@@ -36,6 +40,23 @@ JS files map 1:1 to pages. Pages reference assets at `/static/...` (mount define
 
 All `fetch` calls use relative paths (`/api/...`). The frontend and backend are served from the same origin in dev and prod, so no CORS concerns at runtime (the `*` CORS policy in `backend/main.py` is permissive for local debugging — tighten it before deploying publicly).
 
+## Key functions in admin.js
+
+| Function | What it does |
+| --- | --- |
+| `loadNetworks()` | Fetches `GET /api/airdrop/networks` and populates the network selector |
+| `loadConfig()` | Fetches `GET /api/airdrop/config` and syncs `active_network` to the UI select |
+| `loadStatus()` | Fetches `GET /api/airdrop/status`, renders per-token blocks, per-brand blocks, mode breakdown |
+| `loadBrands()` | Fetches `GET /api/airdrop/brands`, renders the iGaming brands table |
+| `openBrandModal(brand?)` | Opens the add/edit brand modal (null = add mode) |
+| `loadTokens()` | Fetches `GET /api/airdrop/tokens`, updates KPI strip and token filter dropdown |
+| `loadTx()` | Fetches `GET /api/airdrop/transactions` with current filter/page state |
+| `modeBadge(mode, brandName)` | Returns a colored HTML badge for "Standard" or "iGaming · BrandName" |
+| `window.editBrand(id)` | Table row action — opens edit modal pre-populated |
+| `window.deleteBrand(id, name)` | Table row action — confirms then calls `DELETE /api/airdrop/brands/{id}` |
+
+Network change saves to DB: `PUT /api/airdrop/config { active_network: newNet }`, then reloads status + transactions. Scan mode dropdown (Standard / iGaming / Both) is passed as `?scan_mode=` on the `POST /api/airdrop/monitor/run` call.
+
 ## Editing
 
 1. Edit the HTML/CSS/JS file.
@@ -46,8 +67,9 @@ If the dev server is running with `--reload`, only Python changes restart it; st
 ## Adding a new page
 
 1. Create `frontend/<name>.html`. Reference its assets as `/static/css/...` and `/static/js/...`.
-2. Add a route in `backend/main.py` that returns `FileResponse(frontend_path / "<name>.html")` (mirror the `/explorer` and `/admin/airdrop` handlers).
+2. Add a route in `backend/main.py` that returns `FileResponse(frontend_path / "<name>.html")`.
 3. If you need page-specific JS, add `frontend/js/<name>.js` and a `<script src="/static/js/<name>.js">` tag.
+4. Add a sidebar link in the relevant HTML files (all pages share the same sidebar markup).
 
 ## Things not to do
 
