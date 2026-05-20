@@ -25,7 +25,7 @@ from eth_account import Account
 from sqlalchemy import Integer, Numeric, and_, bindparam, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.config import chain_id_for, settings
+from backend.config import chain_id_for, get_active_network, settings
 from backend.db import async_session_factory
 from backend.db_models import (
     AirdropConfig,
@@ -360,11 +360,12 @@ class DistributionWorker:
         account = Account.from_key(private_key)
 
         chain_id = await w3.eth.chain_id
-        expected_chain_id = chain_id_for(token.network)
+        active_network = await get_active_network(session)
+        expected_chain_id = chain_id_for(active_network)
         if chain_id != expected_chain_id:
             raise RuntimeError(
-                f"Chain ID mismatch: token '{token.symbol}' is for network "
-                f"'{token.network}' (chain {expected_chain_id}), RPC returned chain {chain_id}."
+                f"Chain ID mismatch: active_network='{active_network}' (chain {expected_chain_id}), "
+                f"RPC returned chain {chain_id}. Update active_network in admin config."
             )
 
         nonce = await w3.eth.get_transaction_count(to_checksum(wallet.address), "pending")

@@ -1,0 +1,135 @@
+- generic [active] [ref=e1]:
+  - complementary [ref=e2]:
+    - link "Airdrop Suite" [ref=e3] [cursor=pointer]:
+      - /url: /
+      - img [ref=e5]
+      - generic [ref=e8]: Airdrop Suite
+    - navigation [ref=e9]:
+      - generic [ref=e10]: Main Menu
+      - link "Explorer" [ref=e11] [cursor=pointer]:
+        - /url: /
+        - img [ref=e12]
+        - text: Explorer
+      - link "Scanner" [ref=e17] [cursor=pointer]:
+        - /url: /admin/scanner
+        - img [ref=e18]
+        - text: Scanner
+      - link "Airdrop" [ref=e21] [cursor=pointer]:
+        - /url: /admin/airdrop
+        - img [ref=e22]
+        - text: Airdrop
+      - link "Settings" [ref=e24] [cursor=pointer]:
+        - /url: /admin/settings
+        - img [ref=e25]
+        - text: Settings
+  - banner [ref=e28]:
+    - generic [ref=e29]:
+      - generic [ref=e30]: Scanner
+      - generic [ref=e31]:
+        - generic [ref=e32]: Home
+        - generic [ref=e33]: ›
+        - generic [ref=e34]: Scanner
+    - generic [ref=e35]:
+      - generic "Active blockchain network (applies globally)" [ref=e36]:
+        - combobox "Active network" [ref=e38] [cursor=pointer]:
+          - option "Ethereum Mainnet" [selected]
+          - option "Sepolia Testnet"
+      - combobox "Scan mode" [ref=e39] [cursor=pointer]:
+        - option "Standard" [selected]
+        - option "iGaming"
+        - option "Both"
+      - button "Run Scan" [ref=e40] [cursor=pointer]:
+        - img [ref=e41]
+        - text: Run Scan
+  - main [ref=e43]:
+    - generic [ref=e44]:
+      - generic [ref=e45]:
+        - generic [ref=e46]:
+          - img [ref=e48]
+          - generic [ref=e50]:
+            - generic [ref=e51]: Stored Transfers
+            - generic [ref=e52]: —
+        - generic [ref=e53]:
+          - img [ref=e55]
+          - generic [ref=e58]:
+            - generic [ref=e59]: Active Tokens
+            - generic [ref=e60]: —
+        - generic [ref=e61]:
+          - img [ref=e63]
+          - generic [ref=e65]:
+            - generic [ref=e66]: Min Threshold (USD)
+            - generic [ref=e67]: —
+        - generic [ref=e68]:
+          - img [ref=e70]
+          - generic [ref=e73]:
+            - generic [ref=e74]: Last Scan (UTC)
+            - generic [ref=e75]: —
+      - generic [ref=e76]:
+        - heading "Scanner Status" [level=2] [ref=e77]
+        - paragraph [ref=e78]:
+          - text: Per-token and per-brand resume points. The scanner runs only when you click
+          - strong [ref=e79]: Run Scan
+          - text: .
+        - generic [ref=e80]:
+          - generic [ref=e81]:
+            - generic [ref=e82]: Total Transfers Stored
+            - generic [ref=e83]: —
+          - generic [ref=e84]:
+            - generic [ref=e85]: Last Scan
+            - generic [ref=e86]: —
+          - generic [ref=e87]:
+            - generic [ref=e88]: Standard Scan — Last Scanned Block (per token)
+            - generic [ref=e89]: —
+          - generic [ref=e90]:
+            - generic [ref=e91]: iGaming Scan — Last Scanned Block (per brand)
+            - generic [ref=e92]: —
+          - generic [ref=e93]:
+            - generic [ref=e94]: Transfers by Mode
+            - generic [ref=e95]: —
+      - generic [ref=e96]:
+        - generic [ref=e97]:
+          - generic [ref=e98]:
+            - heading "iGaming Brands" [level=2] [ref=e99]
+            - paragraph [ref=e100]: Competitor brand wallets scanned for outgoing payouts to identify their users.
+          - button "+ Add Brand" [ref=e101] [cursor=pointer]
+        - table [ref=e103]:
+          - rowgroup [ref=e104]:
+            - row "Brand Name Wallet Address Last Block Transfers Status Actions" [ref=e105]:
+              - columnheader "Brand Name" [ref=e106] [cursor=pointer]
+              - columnheader "Wallet Address" [ref=e107] [cursor=pointer]
+              - columnheader "Last Block" [ref=e108] [cursor=pointer]
+              - columnheader "Transfers" [ref=e109] [cursor=pointer]
+              - columnheader "Status" [ref=e110] [cursor=pointer]
+              - columnheader "Actions" [ref=e111] [cursor=pointer]
+          - rowgroup [ref=e112]:
+            - row "Loading…" [ref=e113]:
+              - cell "Loading…" [ref=e114]
+      - generic [ref=e115]:
+        - generic [ref=e116]:
+          - generic [ref=e117]:
+            - heading "Qualifying Transactions" [level=2] [ref=e118]
+            - paragraph [ref=e119]: Transfers captured by the scanner (standard threshold or iGaming brand payouts).
+          - generic [ref=e120]:
+            - combobox "Filter by scan mode" [ref=e121] [cursor=pointer]:
+              - option "All modes" [selected]
+              - option "Standard"
+              - option "iGaming"
+            - combobox [ref=e122] [cursor=pointer]:
+              - option "All tokens" [selected]
+            - button "Refresh" [ref=e123] [cursor=pointer]
+        - table [ref=e125]:
+          - rowgroup [ref=e126]:
+            - row "Time (UTC) Mode Token Amount From To Tx" [ref=e127]:
+              - columnheader "Time (UTC)" [ref=e128] [cursor=pointer]
+              - columnheader "Mode" [ref=e129] [cursor=pointer]
+              - columnheader "Token" [ref=e130] [cursor=pointer]
+              - columnheader "Amount" [ref=e131] [cursor=pointer]
+              - columnheader "From" [ref=e132] [cursor=pointer]
+              - columnheader "To" [ref=e133] [cursor=pointer]
+              - columnheader "Tx" [ref=e134] [cursor=pointer]
+          - rowgroup [ref=e135]:
+            - row "Loading…" [ref=e136]:
+              - cell "Loading…" [ref=e137]
+        - generic [ref=e138]:
+          - button "‹ Prev" [ref=e139] [cursor=pointer]
+          - button "Next ›" [ref=e141] [cursor=pointer]

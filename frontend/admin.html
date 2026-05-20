@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scanner — Airdrop Suite</title>
-    <link rel="stylesheet" href="/static/css/styles.css?v=11">
-    <link rel="stylesheet" href="/static/css/admin.css?v=5">
+    <link rel="stylesheet" href="/static/css/styles.css?v=12">
+    <link rel="stylesheet" href="/static/css/admin.css?v=6">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -66,12 +66,19 @@
             </div>
         </div>
         <div class="header-actions">
-            <div class="network-switch" title="Switch active blockchain network">
+            <!-- Global network selector — saved to DB via API -->
+            <div class="network-switch" title="Active blockchain network (applies globally)">
                 <span class="network-switch-dot" id="networkDot"></span>
                 <select id="networkSelect" class="network-select" aria-label="Active network">
                     <option value="">Loading…</option>
                 </select>
             </div>
+            <!-- Scan mode selector -->
+            <select id="scanModeSelect" class="network-select" title="Scan mode" style="min-width:130px;">
+                <option value="standard">Standard</option>
+                <option value="igaming">iGaming</option>
+                <option value="both">Both</option>
+            </select>
             <button id="runMonitorBtn" class="btn btn-primary btn-sm">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                 Run Scan
@@ -118,7 +125,7 @@
             <!-- STATUS CARD -->
             <div class="card admin-card">
                 <h2 class="admin-card-title">Scanner Status</h2>
-                <p class="admin-card-sub">Per-token resume points. The scanner runs only when you click <strong>Run Scan</strong>.</p>
+                <p class="admin-card-sub">Per-token and per-brand resume points. The scanner runs only when you click <strong>Run Scan</strong>.</p>
                 <div id="statusBox" class="status-grid">
                     <div class="status-cell">
                         <div class="status-label">Total Transfers Stored</div>
@@ -129,9 +136,45 @@
                         <div class="status-value" id="statLastRun">—</div>
                     </div>
                     <div class="status-cell" style="grid-column: 1 / -1;">
-                        <div class="status-label">Last Scanned Block (per token)</div>
+                        <div class="status-label">Standard Scan — Last Scanned Block (per token)</div>
                         <div class="status-value" id="statBlocks">—</div>
                     </div>
+                    <div class="status-cell" style="grid-column: 1 / -1;">
+                        <div class="status-label">iGaming Scan — Last Scanned Block (per brand)</div>
+                        <div class="status-value" id="statBrandBlocks">—</div>
+                    </div>
+                    <div class="status-cell" style="grid-column: 1 / -1;">
+                        <div class="status-label">Transfers by Mode</div>
+                        <div class="status-value" id="statModeBreakdown">—</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- iGAMING BRANDS CARD -->
+            <div class="card admin-card">
+                <div class="admin-card-header-row">
+                    <div>
+                        <h2 class="admin-card-title">iGaming Brands</h2>
+                        <p class="admin-card-sub">Competitor brand wallets scanned for outgoing payouts to identify their users.</p>
+                    </div>
+                    <button id="addBrandBtn" class="btn btn-secondary btn-sm">+ Add Brand</button>
+                </div>
+                <div class="table-wrapper">
+                    <table id="brandsTable">
+                        <thead>
+                            <tr>
+                                <th>Brand Name</th>
+                                <th>Wallet Address</th>
+                                <th>Last Block</th>
+                                <th>Transfers</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="brandsTbody">
+                            <tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 24px;">Loading…</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
@@ -140,9 +183,14 @@
                 <div class="admin-card-header-row">
                     <div>
                         <h2 class="admin-card-title">Qualifying Transactions</h2>
-                        <p class="admin-card-sub">Transfers ≥ threshold captured on the active network.</p>
+                        <p class="admin-card-sub">Transfers captured by the scanner (standard threshold or iGaming brand payouts).</p>
                     </div>
                     <div class="tx-filter-row">
+                        <select id="txModeFilter" class="wallet-input" title="Filter by scan mode">
+                            <option value="">All modes</option>
+                            <option value="standard">Standard</option>
+                            <option value="igaming">iGaming</option>
+                        </select>
                         <select id="txTokenFilter" class="wallet-input">
                             <option value="">All tokens</option>
                         </select>
@@ -155,6 +203,7 @@
                         <thead>
                             <tr>
                                 <th>Time (UTC)</th>
+                                <th>Mode</th>
                                 <th>Token</th>
                                 <th>Amount</th>
                                 <th>From</th>
@@ -163,7 +212,7 @@
                             </tr>
                         </thead>
                         <tbody id="txTbody">
-                            <tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 24px;">Loading…</td></tr>
+                            <tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 24px;">Loading…</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -178,6 +227,41 @@
         </div>
     </main>
 
-    <script src="/static/js/admin.js?v=4"></script>
+    <!-- ===== BRAND MODAL ===== -->
+    <div id="brandModal" class="modal-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="brandModalTitle">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 class="modal-title" id="brandModalTitle">Add iGaming Brand</h3>
+                <button class="modal-close" id="brandModalClose" aria-label="Close">&times;</button>
+            </div>
+            <form id="brandForm" class="modal-body">
+                <input type="hidden" id="brandId" value="">
+                <div class="form-group">
+                    <label class="form-label" for="brandName">Brand Name *</label>
+                    <input class="wallet-input" id="brandName" type="text" placeholder="e.g. Stake.com" maxlength="128" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="brandWallet">Wallet Address *</label>
+                    <input class="wallet-input mono" id="brandWallet" type="text" placeholder="0x..." maxlength="42" required>
+                    <small class="form-hint">The Ethereum address whose <em>outgoing</em> ERC-20 transfers we scan to identify this brand's users.</small>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="brandDesc">Description (optional)</label>
+                    <input class="wallet-input" id="brandDesc" type="text" placeholder="Short note about this brand" maxlength="255">
+                </div>
+                <div class="form-group form-check">
+                    <input type="checkbox" id="brandActive" checked>
+                    <label for="brandActive">Active (include in iGaming scans)</label>
+                </div>
+                <div id="brandFormError" class="form-error" style="display:none;"></div>
+            </form>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-sm" id="brandCancelBtn">Cancel</button>
+                <button class="btn btn-primary btn-sm" id="brandSaveBtn">Save Brand</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/admin.js?v=5"></script>
 </body>
 </html>

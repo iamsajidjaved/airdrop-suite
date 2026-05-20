@@ -34,7 +34,7 @@ class AirdropToken(Base):
     symbol: Mapped[str] = mapped_column(String(32), nullable=False, unique=True)
     contract_address: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
     decimals: Mapped[int] = mapped_column(Integer, nullable=False)
-    network: Mapped[str] = mapped_column(String(32), nullable=False, default="ethereum", server_default="ethereum")
+    # network column removed — global active_network config key in airdrop_config now controls this
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
     last_scanned_block: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
@@ -65,6 +65,37 @@ class AirdropConfig(Base):
     )
 
 
+class IgamingBrand(Base):
+    """An iGaming competitor brand whose outgoing ERC-20 transfers we scan to identify their users."""
+
+    __tablename__ = "igaming_brands"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(128), nullable=False)
+    wallet_address: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    description: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
+    last_scanned_block: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+    transactions: Mapped[list["AirdropTransaction"]] = relationship(
+        back_populates="brand", passive_deletes=True
+    )
+
+    __table_args__ = (
+        UniqueConstraint("wallet_address", name="uq_igaming_brands_wallet"),
+        Index("ix_igaming_brands_wallet_address", "wallet_address"),
+    )
+
+
 class AirdropTransaction(Base):
     __tablename__ = "airdrop_transactions"
 
@@ -83,11 +114,20 @@ class AirdropTransaction(Base):
     amount: Mapped[Decimal] = mapped_column(Numeric(38, 18), nullable=False)
     amount_usd: Mapped[Optional[Decimal]] = mapped_column(Numeric(38, 8), nullable=True)
     transferred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    # scan_mode: which scanner produced this row ("standard" or "igaming")
+    scan_mode: Mapped[str] = mapped_column(String(20), nullable=False, default="standard", server_default="standard")
+    # igaming_brand_id: set when scan_mode == "igaming"
+    igaming_brand_id: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        ForeignKey("igaming_brands.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
 
     token: Mapped[AirdropToken] = relationship(back_populates="transactions")
+    brand: Mapped[Optional[IgamingBrand]] = relationship(back_populates="transactions")
 
     __table_args__ = (
         UniqueConstraint("tx_hash", "log_index", "token_id", name="uq_airdrop_tx_hash_log_token"),
@@ -95,6 +135,7 @@ class AirdropTransaction(Base):
         Index("ix_airdrop_tx_to", "to_address"),
         Index("ix_airdrop_tx_from", "from_address"),
         Index("ix_airdrop_tx_transferred_at", "transferred_at"),
+        Index("ix_airdrop_tx_scan_mode", "scan_mode"),
     )
 
 
@@ -110,7 +151,6 @@ class DistributionWallet(Base):
     encrypted_private_key: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
     key_nonce: Mapped[bytes] = mapped_column(LargeBinary(12), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
-    # Cached balances populated on wallet creation and on manual refresh.
     eth_balance: Mapped[Optional[Decimal]] = mapped_column(Numeric(38, 18), nullable=True)
     token_balances: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
     balances_updated_at: Mapped[Optional[datetime]] = mapped_column(

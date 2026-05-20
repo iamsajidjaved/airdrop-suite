@@ -50,8 +50,9 @@ Or use `start.ps1` / `start.bat` — they wrap the `uv sync` + uvicorn step (the
 App routes once running:
 - `http://127.0.0.1:8000/` — wallet input (`frontend/index.html`)
 - `http://127.0.0.1:8000/explorer` — transaction dashboard
-- `http://127.0.0.1:8000/admin/airdrop` — airdrop monitor admin
-- `http://127.0.0.1:8000/admin/distribution` — token distribution admin (Phase 2)
+- `http://127.0.0.1:8000/admin/scanner` — scanner admin (iGaming brands, qualifying transactions)
+- `http://127.0.0.1:8000/admin/airdrop` — airdrop campaigns admin (Phase 2)
+- `http://127.0.0.1:8000/admin/settings` — settings (tokens, thresholds, wallets)
 - `http://127.0.0.1:8000/docs` — FastAPI auto-docs
 
 ## Environment variables

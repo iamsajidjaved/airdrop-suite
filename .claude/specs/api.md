@@ -8,12 +8,14 @@ All endpoints are served from the FastAPI app at `backend/main.py`. Auto-generat
 | --- | --- | --- |
 | GET | `/` | `frontend/index.html` |
 | GET | `/explorer` | `frontend/explorer.html` |
-| GET | `/admin/airdrop` | `frontend/admin.html` |
+| GET | `/admin/scanner` | `frontend/admin.html` |
+| GET | `/admin/airdrop` | `frontend/distribution.html` |
+| GET | `/admin/settings` | `frontend/settings.html` |
 
 ## Health
 
 ### `GET /api/health`
-Returns `{ "status": "healthy", "service": "Wallet Explorer API", "version": "1.0.0" }`. No auth.
+Returns `{ "status": "healthy", "service": "Airdrop Suite API", "version": "1.0.0" }`. No auth.
 
 ## Wallet (stateless)
 
@@ -41,19 +43,23 @@ Source: `backend/routers/transactions.py:54-156`.
 ## Airdrop — monitor
 
 ### `POST /api/airdrop/monitor/run`
-Trigger one scanning pass across all active tokens.
+Trigger one scanning pass.
 
 **Query:**
-- `start_block_override` *(optional, int)* — force every token to start from this block. When set, `last_scanned_block` is **not** updated (useful for backfills without losing the cursor).
+- `scan_mode` *(default `"standard"`)* — one of `"standard"`, `"igaming"`, `"both"`. Controls which scanning logic runs.
+- `start_block_override` *(optional, int)* — force every token/brand to start from this block. When set, cursors are **not** updated (useful for backfills without losing the cursor).
 
-**Response:** `MonitorRunResult` — `tokens_scanned`, `new_transfers_inserted`, `total_transfers_stored`, `blocks_scanned_per_token`, `run_timestamp`, `errors[]`.
+**Response:** `MonitorRunResult` — `tokens_scanned`, `brands_scanned`, `new_transfers_inserted`, `total_transfers_stored`, `blocks_scanned_per_token`, `blocks_scanned_per_brand`, `run_timestamp`, `errors[]`.
 
-Source: `backend/routers/airdrop.py:38-47`.
+Source: `backend/routers/airdrop.py`.
 
 ### `GET /api/airdrop/status`
-**Response:** `AirdropStatusResponse` — `last_run_timestamp` (max `created_at` in `airdrop_transactions`), `last_block_per_token`, `total_transfers`.
+**Response:** `AirdropStatusResponse` — `last_run_timestamp`, `last_block_per_token`, `last_block_per_brand`, `total_transfers`, `scan_mode_breakdown` (`{ "standard": N, "igaming": N }`).
 
-Source: `backend/routers/airdrop.py:50-52`.
+Source: `backend/routers/airdrop.py`.
+
+### `GET /api/airdrop/networks`
+**Response:** `list[dict]` — `[{ key, label, chain_id, explorer }, ...]`. Returns the static `NETWORKS` registry from `backend/config.py`.
 
 ## Airdrop — tokens (CRUD)
 
@@ -61,8 +67,10 @@ Source: `backend/routers/airdrop.py:50-52`.
 **Response:** `list[AirdropTokenOut]`, ordered by symbol.
 
 ### `POST /api/airdrop/tokens`
-**Body:** `AirdropTokenCreate` — `symbol` (uppercased), `contract_address` (lowercased, validated `0x[0-9a-f]{40}`), `decimals`, `network` (default `ethereum`), `is_active` (default `true`).
-**Response:** `AirdropTokenOut`. Returns `409` if `symbol` or `contract_address` already exists (uniqueness enforced at DB level).
+**Body:** `AirdropTokenCreate` — `symbol` (uppercased), `contract_address` (lowercased, validated `0x[0-9a-f]{40}`), `decimals`, `is_active` (default `true`).
+**Response:** `AirdropTokenOut`. Returns `409` if `symbol` or `contract_address` already exists.
+
+Note: there is no `network` field on tokens. The active network is a global config key (`active_network` in `airdrop_config`).
 
 ### `PATCH /api/airdrop/tokens/{token_id}`
 **Body:** `AirdropTokenUpdate` (any subset of fields, including `last_scanned_block`).
@@ -71,20 +79,44 @@ Source: `backend/routers/airdrop.py:50-52`.
 ### `DELETE /api/airdrop/tokens/{token_id}`
 **Response:** `204` on success. `404` if not found. **`409` if the token has any rows in `airdrop_transactions`** — set `is_active=false` instead. This is a safety guard, not a soft delete.
 
-Source: `backend/routers/airdrop.py:129-193`.
+Source: `backend/routers/airdrop.py`.
+
+## Airdrop — iGaming brands (CRUD)
+
+### `GET /api/airdrop/brands`
+**Response:** `list[IgamingBrandOut]`. Each brand includes a `transaction_count` field (computed from `airdrop_transactions`).
+
+### `POST /api/airdrop/brands`
+**Body:** `IgamingBrandCreate` — `name` (max 128), `wallet_address` (Ethereum address), `description` (optional, max 255), `is_active` (default `true`).
+**Response:** `IgamingBrandOut` (201). Returns `409` if wallet_address already exists.
+
+### `PATCH /api/airdrop/brands/{brand_id}`
+**Body:** `IgamingBrandUpdate` (any subset of: `name`, `description`, `is_active`, `last_scanned_block`). Wallet address cannot be changed after creation.
+**Response:** `IgamingBrandOut`. `404` if not found.
+
+### `DELETE /api/airdrop/brands/{brand_id}`
+**Response:** `204`. The FK on `airdrop_transactions.igaming_brand_id` is `ON DELETE SET NULL` — transactions are retained but unlinked.
+
+Source: `backend/routers/airdrop.py`.
 
 ## Airdrop — config
 
-The only config key today is `min_threshold_usd`. Stored as a single row in `airdrop_config` keyed by `min_threshold_usd`.
+Stored as key-value rows in `airdrop_config`. Keys used:
+
+| Key | Default | Notes |
+| --- | --- | --- |
+| `min_threshold_usd` | `500.0` | USD floor for standard-mode transfers |
+| `active_network` | `"ethereum"` | Blockchain for all scan operations (`"ethereum"` or `"sepolia"`) |
+| `igaming_threshold_usd` | `0.0` | USD floor for iGaming-mode transfers (0 = capture all brand payouts) |
 
 ### `GET /api/airdrop/config`
-**Response:** `AirdropConfigOut` — `{ "min_threshold_usd": 500.0 }`. Returns the default `500.0` if no row exists.
+**Response:** `AirdropConfigOut` — `{ min_threshold_usd, active_network, igaming_threshold_usd }`.
 
 ### `PUT /api/airdrop/config`
-**Body:** `AirdropConfigUpdate` — `{ "min_threshold_usd": float > 0 }`.
-**Response:** `AirdropConfigOut`. Upserts the row.
+**Body:** `AirdropConfigUpdate` — any subset of `{ min_threshold_usd, active_network, igaming_threshold_usd }`. `active_network` must be a key in the `NETWORKS` registry.
+**Response:** `AirdropConfigOut`. Upserts each supplied key.
 
-Source: `backend/routers/airdrop.py:198-217`.
+Source: `backend/routers/airdrop.py`.
 
 ## Airdrop — transactions
 
@@ -93,15 +125,25 @@ Paginated query over stored transfers.
 
 **Query:**
 - `token` — symbol filter (e.g. `USDT`); resolved to a `token_id` server-side.
+- `scan_mode` — `"standard"` or `"igaming"` filter.
 - `from_address`, `to_address` — exact match (lowercased before comparison).
 - `min_amount` — inclusive `amount >= ?`.
 - `from_date`, `to_date` — `YYYY-MM-DD` (UTC). `to_date` is treated as end-of-day.
 - `limit` — 1..500, default 50.
 - `offset` — ≥ 0, default 0.
 
-**Response:** `AirdropTransactionListResponse` — `{ total, limit, offset, items: AirdropTransactionOut[] }`. Items are sorted `transferred_at DESC, id DESC` and joined to `airdrop_tokens` so `token_symbol` is populated.
+**Response:** `AirdropTransactionListResponse` — `{ total, limit, offset, items: AirdropTransactionOut[] }`. Each item includes `scan_mode`, `brand_name` (nullable, populated for iGaming rows).
 
-Source: `backend/routers/airdrop.py:57-124`.
+Source: `backend/routers/airdrop.py`.
+
+## Airdrop — admin
+
+### `POST /api/airdrop/admin/reset`
+Reset scan state. Requires `X-Admin-Token` header.
+
+**Body:** `{ "include_brands": bool }` — if true, also truncates `igaming_brands`; otherwise resets brand cursors only.
+
+Clears `airdrop_transactions`, resets all `last_scanned_block` cursors, and optionally truncates brands.
 
 ## Error shape
 

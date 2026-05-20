@@ -31,16 +31,14 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def _canonical_network() -> str:
     """Return the network key that matches the current settings."""
-    env = (settings.network_environment or "mainnet").lower()
-    # If env is already a known network key, use it directly.
+    env = (getattr(settings, "network_environment", "ethereum") or "ethereum").lower()
     if env in NETWORKS:
         return env
-    # Fall back to matching by chain_id.
-    chain = settings.etherscan_chain_id
+    chain = getattr(settings, "etherscan_chain_id", 1)
     for key, info in NETWORKS.items():
         if int(info["chain_id"]) == chain:
             return key
-    return env
+    return "ethereum"
 
 
 def upgrade() -> None:

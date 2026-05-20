@@ -46,37 +46,35 @@ async def reset_collected_data(
     *,
     include_blocklist: bool = False,
     include_wallets: bool = False,
+    include_brands: bool = False,
 ) -> dict[str, Any]:
-    """Truncate runtime data and reset per-token scan progress.
+    """Truncate runtime data and reset per-token/brand scan progress.
 
     Returns a small report dict suitable for logging or API response.
     """
     cleared: list[str] = []
     async with async_session_factory() as session:
-        # TRUNCATE ... RESTART IDENTITY CASCADE in one statement is atomic and
-        # much faster than per-row DELETE on Postgres.
         tables = list(_RUNTIME_TABLES_CASCADE)
         if include_blocklist:
             tables.append("quality_address_blocklist")
         if include_wallets:
-            # distribution_wallets has no FKs pointing in once recipients/txs
-            # are gone, so it's safe to include here.
             tables.append("distribution_wallets")
+        if include_brands:
+            tables.append("igaming_brands")
 
         joined = ", ".join(tables)
         await session.execute(text(f"TRUNCATE TABLE {joined} RESTART IDENTITY CASCADE"))
         cleared.extend(tables)
 
-        # Reset per-token scanner cursor so the next monitor run starts fresh.
         await session.execute(text("UPDATE airdrop_tokens SET last_scanned_block = NULL"))
+        if not include_brands:
+            await session.execute(text("UPDATE igaming_brands SET last_scanned_block = NULL"))
         await session.commit()
 
-    logger.warning(
-        "Reset complete. Truncated tables=%s. last_scanned_block reset on all tokens.",
-        cleared,
-    )
+    logger.warning("Reset complete. Truncated tables=%s.", cleared)
     return {
         "ok": True,
         "tables_truncated": cleared,
         "tokens_reset": True,
+        "brands_reset": not include_brands,
     }

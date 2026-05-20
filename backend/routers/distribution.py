@@ -253,7 +253,6 @@ async def list_sends(
         item = AirdropSendOut.model_validate(s)
         if s.token:
             item.token_symbol = s.token.symbol
-            item.network = s.token.network
         if s.wallet:
             item.wallet_address = s.wallet.address
         items.append(item)

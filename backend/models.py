@@ -32,7 +32,7 @@ class Transaction(BaseModel):
     status: str
     block_number: int
     gas_fee: Optional[str] = None
-    
+
     class Config:
         populate_by_name = True
 
@@ -53,21 +53,13 @@ class ErrorResponse(BaseModel):
     detail: Optional[str] = None
 
 
-class AirdropRecipient(BaseModel):
-    address: str
-    first_seen_tx: str
-    first_seen_token: str
-    first_seen_contract: str
-    first_seen_amount: float
-    first_seen_block: int
-    first_seen_datetime_utc: str
-
-
 class MonitorRunResult(BaseModel):
     tokens_scanned: list[str]
+    brands_scanned: list[str] = Field(default_factory=list)
     new_transfers_inserted: int
     total_transfers_stored: int
     blocks_scanned_per_token: dict[str, dict]
+    blocks_scanned_per_brand: dict[str, dict] = Field(default_factory=dict)
     run_timestamp: str
     errors: list[str]
 
@@ -75,7 +67,51 @@ class MonitorRunResult(BaseModel):
 class AirdropStatusResponse(BaseModel):
     last_run_timestamp: Optional[str]
     last_block_per_token: dict[str, int]
+    last_block_per_brand: dict[str, int] = Field(default_factory=dict)
     total_transfers: int
+    scan_mode_breakdown: dict[str, int] = Field(default_factory=dict)
+
+
+# ----- iGaming Brands CRUD -----
+
+import re as _re
+
+_HEX_ADDR_RE_BRAND = _re.compile(r"0x[0-9a-f]{40}")
+
+
+class IgamingBrandBase(BaseModel):
+    name: str = Field(..., min_length=1, max_length=128)
+    wallet_address: str = Field(..., min_length=42, max_length=64)
+    description: Optional[str] = Field(None, max_length=255)
+    is_active: bool = True
+
+    @field_validator("wallet_address")
+    @classmethod
+    def _validate_wallet(cls, v: str) -> str:
+        v = v.strip().lower()
+        if not _HEX_ADDR_RE_BRAND.fullmatch(v):
+            raise ValueError("wallet_address must be a 0x-prefixed 40-hex-char Ethereum address")
+        return v
+
+
+class IgamingBrandCreate(IgamingBrandBase):
+    pass
+
+
+class IgamingBrandUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=128)
+    description: Optional[str] = Field(None, max_length=255)
+    is_active: Optional[bool] = None
+    last_scanned_block: Optional[int] = Field(None, ge=0)
+
+
+class IgamingBrandOut(IgamingBrandBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    last_scanned_block: Optional[int] = None
+    created_at: datetime
+    updated_at: datetime
+    transaction_count: int = 0
 
 
 # ----- Token CRUD -----
@@ -84,7 +120,6 @@ class AirdropTokenBase(BaseModel):
     symbol: str = Field(..., min_length=1, max_length=32)
     contract_address: str = Field(..., min_length=42, max_length=64)
     decimals: int = Field(..., ge=0, le=36)
-    network: str = Field(default="ethereum", max_length=32)
     is_active: bool = True
 
     @field_validator("symbol")
@@ -110,7 +145,6 @@ class AirdropTokenUpdate(BaseModel):
     symbol: Optional[str] = Field(None, min_length=1, max_length=32)
     contract_address: Optional[str] = Field(None, min_length=42, max_length=64)
     decimals: Optional[int] = Field(None, ge=0, le=36)
-    network: Optional[str] = Field(None, max_length=32)
     is_active: Optional[bool] = None
     last_scanned_block: Optional[int] = Field(None, ge=0)
 
@@ -143,10 +177,14 @@ class AirdropTokenOut(AirdropTokenBase):
 
 class AirdropConfigOut(BaseModel):
     min_threshold_usd: float
+    active_network: str = "ethereum"
+    igaming_threshold_usd: float = 0.0
 
 
 class AirdropConfigUpdate(BaseModel):
-    min_threshold_usd: float = Field(..., gt=0)
+    min_threshold_usd: Optional[float] = Field(None, gt=0)
+    active_network: Optional[str] = Field(None, max_length=32)
+    igaming_threshold_usd: Optional[float] = Field(None, ge=0)
 
 
 # ----- Quality filter settings -----
@@ -193,6 +231,9 @@ class AirdropTransactionOut(BaseModel):
     amount: Decimal
     amount_usd: Optional[Decimal] = None
     transferred_at: datetime
+    scan_mode: str = "standard"
+    igaming_brand_id: Optional[int] = None
+    brand_name: Optional[str] = None
     created_at: datetime
 
 
@@ -239,7 +280,6 @@ class DistributionWalletOut(BaseModel):
     is_active: bool
     created_at: datetime
     updated_at: datetime
-    # Cached balances populated on wallet creation and on manual refresh.
     eth_balance: Optional[Decimal] = None
     token_balances: Optional[dict[str, Decimal]] = None
     balances_updated_at: Optional[datetime] = None
@@ -306,5 +346,3 @@ class AirdropSendListResponse(BaseModel):
     limit: int
     offset: int
     items: list[AirdropSendOut]
-
-
