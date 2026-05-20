@@ -1,0 +1,86 @@
+- generic [ref=e1]:
+  - complementary [ref=e2]:
+    - link "Airdrop Suite" [ref=e3] [cursor=pointer]:
+      - /url: /
+      - img [ref=e5]
+      - generic [ref=e8]: Airdrop Suite
+    - navigation [ref=e9]:
+      - generic [ref=e10]: Main Menu
+      - link "Explorer" [ref=e11] [cursor=pointer]:
+        - /url: /
+        - img [ref=e12]
+        - text: Explorer
+      - link "Scanner" [ref=e17] [cursor=pointer]:
+        - /url: /admin/scanner
+        - img [ref=e18]
+        - text: Scanner
+      - link "Airdrop" [ref=e21] [cursor=pointer]:
+        - /url: /admin/airdrop
+        - img [ref=e22]
+        - text: Airdrop
+      - link "Settings" [ref=e24] [cursor=pointer]:
+        - /url: /admin/settings
+        - img [ref=e25]
+        - text: Settings
+  - banner [ref=e28]:
+    - generic [ref=e29]:
+      - generic [ref=e30]: Settings
+      - generic [ref=e31]:
+        - generic [ref=e32]: Home
+        - generic [ref=e33]: ›
+        - generic [ref=e34]: Settings
+    - generic [ref=e35]:
+      - generic "Active blockchain network (applies globally)" [ref=e36]:
+        - combobox "Active network" [ref=e38] [cursor=pointer]:
+          - option "Ethereum Mainnet" [selected]
+          - option "Sepolia Testnet"
+      - combobox "Scan mode" [ref=e39] [cursor=pointer]:
+        - option "Standard" [selected]
+        - option "iGaming"
+        - option "Both"
+      - button "Run Scan" [ref=e40] [cursor=pointer]:
+        - img [ref=e41]
+        - text: Run Scan
+  - main [ref=e43]:
+    - generic [ref=e44]:
+      - tablist "Settings sections" [ref=e45]:
+        - tab "Threshold" [ref=e46] [cursor=pointer]:
+          - img [ref=e47]
+          - text: Threshold
+        - tab "Tokens" [active] [ref=e52] [cursor=pointer]:
+          - img [ref=e53]
+          - text: Tokens
+        - tab "Sender Wallets" [ref=e55] [cursor=pointer]:
+          - img [ref=e56]
+          - text: Sender Wallets
+        - tab "Advanced" [ref=e58] [cursor=pointer]:
+          - img [ref=e59]
+          - text: Advanced
+        - tab "Filters" [ref=e61] [cursor=pointer]:
+          - img [ref=e62]
+          - text: Filters
+        - tab "Airdrop" [ref=e64] [cursor=pointer]:
+          - img [ref=e65]
+          - text: Airdrop
+        - tab "Brands" [ref=e67] [cursor=pointer]:
+          - img [ref=e68]
+          - text: Brands
+      - generic [ref=e87]:
+        - generic [ref=e88]:
+          - generic [ref=e89]:
+            - heading "Supported Tokens" [level=2] [ref=e90]
+            - paragraph [ref=e91]: ERC-20 tokens scanned by the monitor. Add, edit, enable, disable or delete — all stored in the database.
+          - button "+ Add Token" [ref=e92] [cursor=pointer]
+        - table [ref=e94]:
+          - rowgroup [ref=e95]:
+            - row "Symbol Contract Decimals Network Status Last Block Actions" [ref=e96]:
+              - columnheader "Symbol" [ref=e97] [cursor=pointer]
+              - columnheader "Contract" [ref=e98] [cursor=pointer]
+              - columnheader "Decimals" [ref=e99] [cursor=pointer]
+              - columnheader "Network" [ref=e100] [cursor=pointer]
+              - columnheader "Status" [ref=e101] [cursor=pointer]
+              - columnheader "Last Block" [ref=e102] [cursor=pointer]
+              - columnheader "Actions" [ref=e103] [cursor=pointer]
+          - rowgroup [ref=e104]:
+            - row "No tokens for this network. Click \"+ Add Token\" to add one." [ref=e105]:
+              - cell "No tokens for this network. Click \"+ Add Token\" to add one." [ref=e106]

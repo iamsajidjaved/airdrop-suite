@@ -1,0 +1,125 @@
+- generic [active] [ref=e1]:
+  - complementary [ref=e2]:
+    - link "Airdrop Suite" [ref=e3] [cursor=pointer]:
+      - /url: /
+      - img [ref=e5]
+      - generic [ref=e8]: Airdrop Suite
+    - navigation [ref=e9]:
+      - generic [ref=e10]: Main Menu
+      - link "Explorer" [ref=e11] [cursor=pointer]:
+        - /url: /
+        - img [ref=e12]
+        - text: Explorer
+      - link "Scanner" [ref=e17] [cursor=pointer]:
+        - /url: /admin/scanner
+        - img [ref=e18]
+        - text: Scanner
+      - link "Airdrop" [ref=e21] [cursor=pointer]:
+        - /url: /admin/airdrop
+        - img [ref=e22]
+        - text: Airdrop
+      - link "Settings" [ref=e24] [cursor=pointer]:
+        - /url: /admin/settings
+        - img [ref=e25]
+        - text: Settings
+  - banner [ref=e28]:
+    - generic [ref=e29]:
+      - generic [ref=e30]: Settings
+      - generic [ref=e31]:
+        - generic [ref=e32]: Home
+        - generic [ref=e33]: ›
+        - generic [ref=e34]: Settings
+    - generic [ref=e78]:
+      - generic "Active blockchain network (applies globally)" [ref=e79]:
+        - combobox "Active network" [ref=e81] [cursor=pointer]:
+          - option "Ethereum Mainnet" [selected]
+          - option "Sepolia Testnet"
+      - combobox "Scan mode" [ref=e82] [cursor=pointer]:
+        - option "Standard" [selected]
+        - option "iGaming"
+        - option "Both"
+      - button "Run Scan" [ref=e83] [cursor=pointer]:
+        - img [ref=e84]
+        - text: Run Scan
+  - main [ref=e35]:
+    - generic [ref=e36]:
+      - tablist "Settings sections" [ref=e37]:
+        - tab "Threshold" [ref=e38] [cursor=pointer]:
+          - img [ref=e39]
+          - text: Threshold
+        - tab "Tokens" [ref=e44] [cursor=pointer]:
+          - img [ref=e45]
+          - text: Tokens
+        - tab "Sender Wallets" [ref=e47] [cursor=pointer]:
+          - img [ref=e48]
+          - text: Sender Wallets
+        - tab "Advanced" [ref=e50] [cursor=pointer]:
+          - img [ref=e51]
+          - text: Advanced
+        - tab "Filters" [ref=e53] [cursor=pointer]:
+          - img [ref=e54]
+          - text: Filters
+        - tab "Airdrop" [ref=e56] [cursor=pointer]:
+          - img [ref=e57]
+          - text: Airdrop
+        - tab "Brands" [ref=e59] [cursor=pointer]:
+          - img [ref=e60]
+          - text: Brands
+      - generic [ref=e87]:
+        - generic [ref=e88]:
+          - generic [ref=e89]:
+            - heading "Supported Tokens" [level=2] [ref=e90]
+            - paragraph [ref=e91]: ERC-20 tokens scanned by the monitor. Add, edit, enable, disable or delete — all stored in the database.
+          - button "+ Add Token" [ref=e92] [cursor=pointer]
+        - table [ref=e94]:
+          - rowgroup [ref=e95]:
+            - row "Symbol Contract Decimals Status Last Block Actions" [ref=e96]:
+              - columnheader "Symbol" [ref=e97] [cursor=pointer]
+              - columnheader "Contract" [ref=e98] [cursor=pointer]
+              - columnheader "Decimals" [ref=e99] [cursor=pointer]
+              - columnheader "Status" [ref=e100] [cursor=pointer]
+              - columnheader "Last Block" [ref=e101] [cursor=pointer]
+              - columnheader "Actions" [ref=e102] [cursor=pointer]
+          - rowgroup [ref=e103]:
+            - row "EURC 0x08210f…c594d4 6 Active 5,755,389 Edit Block Disable Delete" [ref=e104]:
+              - cell "EURC" [ref=e105]:
+                - strong [ref=e106]: EURC
+              - cell "0x08210f…c594d4" [ref=e107]
+              - cell "6" [ref=e108]
+              - cell "Active" [ref=e109]:
+                - generic [ref=e110]: Active
+              - cell "5,755,389" [ref=e111]
+              - cell "Edit Block Disable Delete" [ref=e112]:
+                - generic [ref=e113]:
+                  - button "Edit" [ref=e114] [cursor=pointer]
+                  - button "Block" [ref=e115] [cursor=pointer]
+                  - button "Disable" [ref=e116] [cursor=pointer]
+                  - button "Delete" [ref=e117] [cursor=pointer]
+            - row "PYUSD 0xcac524…1b3bb9 6 Active 6,921,232 Edit Block Disable Delete" [ref=e118]:
+              - cell "PYUSD" [ref=e119]:
+                - strong [ref=e120]: PYUSD
+              - cell "0xcac524…1b3bb9" [ref=e121]
+              - cell "6" [ref=e122]
+              - cell "Active" [ref=e123]:
+                - generic [ref=e124]: Active
+              - cell "6,921,232" [ref=e125]
+              - cell "Edit Block Disable Delete" [ref=e126]:
+                - generic [ref=e127]:
+                  - button "Edit" [ref=e128] [cursor=pointer]
+                  - button "Block" [ref=e129] [cursor=pointer]
+                  - button "Disable" [ref=e130] [cursor=pointer]
+                  - button "Delete" [ref=e131] [cursor=pointer]
+            - row "USDC 0x1c7d4b…9c7238 6 Active 5,390,235 Edit Block Disable Delete" [ref=e132]:
+              - cell "USDC" [ref=e133]:
+                - strong [ref=e134]: USDC
+              - cell "0x1c7d4b…9c7238" [ref=e135]
+              - cell "6" [ref=e136]
+              - cell "Active" [ref=e137]:
+                - generic [ref=e138]: Active
+              - cell "5,390,235" [ref=e139]
+              - cell "Edit Block Disable Delete" [ref=e140]:
+                - generic [ref=e141]:
+                  - button "Edit" [ref=e142] [cursor=pointer]
+                  - button "Block" [ref=e143] [cursor=pointer]
+                  - button "Disable" [ref=e144] [cursor=pointer]
+                  - button "Delete" [ref=e145] [cursor=pointer]

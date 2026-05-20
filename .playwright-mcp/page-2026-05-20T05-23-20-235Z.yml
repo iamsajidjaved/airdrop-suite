@@ -1,0 +1,139 @@
+- generic [active] [ref=e1]:
+  - complementary [ref=e2]:
+    - link "Airdrop Suite" [ref=e3] [cursor=pointer]:
+      - /url: /
+      - img [ref=e5]
+      - generic [ref=e8]: Airdrop Suite
+    - navigation [ref=e9]:
+      - generic [ref=e10]: Main Menu
+      - link "Explorer" [ref=e11] [cursor=pointer]:
+        - /url: /
+        - img [ref=e12]
+        - text: Explorer
+      - link "Scanner" [ref=e17] [cursor=pointer]:
+        - /url: /admin/scanner
+        - img [ref=e18]
+        - text: Scanner
+      - link "Airdrop" [ref=e21] [cursor=pointer]:
+        - /url: /admin/airdrop
+        - img [ref=e22]
+        - text: Airdrop
+      - link "Settings" [ref=e24] [cursor=pointer]:
+        - /url: /admin/settings
+        - img [ref=e25]
+        - text: Settings
+  - banner [ref=e28]:
+    - generic [ref=e29]:
+      - generic [ref=e30]: Airdrop
+      - generic [ref=e31]:
+        - generic [ref=e32]: Home
+        - generic [ref=e33]: ›
+        - generic [ref=e34]: Airdrop
+    - generic [ref=e35]:
+      - generic "Active blockchain network (applies globally)" [ref=e36]:
+        - combobox "Active network" [ref=e38] [cursor=pointer]:
+          - option "Ethereum Mainnet" [selected]
+          - option "Sepolia Testnet"
+      - combobox "Scan mode" [ref=e39] [cursor=pointer]:
+        - option "Standard" [selected]
+        - option "iGaming"
+        - option "Both"
+      - button "Run Scan" [ref=e40] [cursor=pointer]:
+        - img [ref=e41]
+        - text: Run Scan
+  - main [ref=e43]:
+    - generic [ref=e44]:
+      - generic [ref=e45]:
+        - generic [ref=e46]:
+          - img [ref=e48]
+          - generic [ref=e50]:
+            - generic [ref=e51]: Sender Wallets
+            - generic [ref=e52]: —
+        - generic [ref=e53]:
+          - img [ref=e55]
+          - generic [ref=e58]:
+            - generic [ref=e59]: Pending
+            - generic [ref=e60]: —
+        - generic [ref=e61]:
+          - img [ref=e63]
+          - generic [ref=e65]:
+            - generic [ref=e66]: Confirmed
+            - generic [ref=e67]: —
+        - generic [ref=e68]:
+          - img [ref=e70]
+          - generic [ref=e74]:
+            - generic [ref=e75]: Failed
+            - generic [ref=e76]: —
+      - generic [ref=e77]:
+        - generic [ref=e78]:
+          - generic [ref=e79]:
+            - heading "Worker" [level=2] [ref=e80]
+            - paragraph [ref=e81]:
+              - text: Background loop that signs and broadcasts ERC-20 transfers. Configure via
+              - link "Settings → Airdrop" [ref=e82] [cursor=pointer]:
+                - /url: /admin/settings#airdrop
+              - text: .
+          - generic [ref=e83]:
+            - generic [ref=e86]: Stopped
+            - button "Start" [ref=e87] [cursor=pointer]:
+              - img [ref=e88]
+              - text: Start
+            - button "Stop" [ref=e90] [cursor=pointer]:
+              - img [ref=e91]
+              - text: Stop
+            - button "Refresh" [ref=e93] [cursor=pointer]
+        - generic [ref=e94]:
+          - generic [ref=e95]:
+            - generic [ref=e96]: Mode
+            - generic [ref=e97]: —
+          - generic [ref=e99]:
+            - generic [ref=e100]: Interval
+            - generic [ref=e101]: —
+          - generic [ref=e103]:
+            - generic [ref=e104]: Total Sent
+            - generic [ref=e105]: —
+          - generic [ref=e107]:
+            - generic [ref=e108]: In Flight
+            - generic [ref=e109]: —
+          - generic [ref=e111]:
+            - generic [ref=e112]: Last Tick
+            - generic [ref=e113]: —
+      - generic [ref=e114]:
+        - generic [ref=e116]:
+          - heading "Dispatch History" [level=2] [ref=e117]
+          - paragraph [ref=e118]: Complete record of all airdrop sends enqueued and processed by the worker.
+        - generic [ref=e119]:
+          - generic [ref=e120]:
+            - combobox [ref=e121] [cursor=pointer]:
+              - option "All statuses" [selected]
+              - option "Pending"
+              - option "Broadcast"
+              - option "Confirmed"
+              - option "Failed"
+            - textbox "Search by address…" [ref=e122]
+            - button "Refresh" [ref=e123] [cursor=pointer]
+          - generic [ref=e124]:
+            - generic [ref=e125]: "Rows per page:"
+            - combobox "Rows per page:" [ref=e126] [cursor=pointer]:
+              - option "10"
+              - option "25"
+              - option "50" [selected]
+              - option "100"
+        - table [ref=e128]:
+          - rowgroup [ref=e129]:
+            - row "Receiving Address ⇅ Sender ⇅ Amount ⇅ Status ⇅ Tx Hash Attempts ⇅ Created ↓" [ref=e130]:
+              - columnheader "Receiving Address ⇅" [ref=e131] [cursor=pointer]
+              - columnheader "Sender ⇅" [ref=e132] [cursor=pointer]
+              - columnheader "Amount ⇅" [ref=e133] [cursor=pointer]
+              - columnheader "Status ⇅" [ref=e134] [cursor=pointer]
+              - columnheader "Tx Hash" [ref=e135] [cursor=pointer]
+              - columnheader "Attempts ⇅" [ref=e136] [cursor=pointer]
+              - columnheader "Created ↓" [ref=e137] [cursor=pointer]
+          - rowgroup [ref=e138]:
+            - row "Loading…" [ref=e139]:
+              - cell "Loading…" [ref=e140]
+        - generic [ref=e141]:
+          - generic [ref=e142]: —
+          - generic [ref=e143]:
+            - button "‹ Previous" [ref=e144] [cursor=pointer]
+            - button "Next ›" [ref=e146] [cursor=pointer]

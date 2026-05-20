@@ -118,25 +118,6 @@
     // TOKENS
     // =====================================================================
     let tokens = [];
-    let networks = [];
-
-    async function loadNetworks() {
-        try { networks = await airdropApi("/networks"); }
-        catch {
-            networks = [
-                { key: "ethereum", label: "Ethereum Mainnet", chain_id: 1, explorer: "https://etherscan.io" },
-                { key: "sepolia",  label: "Sepolia Testnet",  chain_id: 11155111, explorer: "https://sepolia.etherscan.io" },
-            ];
-        }
-        // Populate modal network select only — header selector is owned by global-header.js
-        const tns = $("tokenNetwork");
-        if (tns) tns.innerHTML = networks.map(n => `<option value="${n.key}">${escapeHtml(n.label)}</option>`).join("");
-    }
-
-    // Re-filter tokens table when the global header network changes
-    document.addEventListener("networkchange", () => {
-        renderTokens();
-    });
 
     async function loadTokens() {
         try { tokens = await airdropApi("/tokens"); renderTokens(); }
@@ -147,25 +128,22 @@
     }
 
     function tokensForActive() {
-        const net = (window.GlobalHeader && window.GlobalHeader.activeNetwork) || "ethereum";
-        return tokens.filter(t => (t.network || "").toLowerCase() === net);
+        return tokens; // network column was removed from airdrop_tokens in migration 0012; tokens are now global
     }
 
     function renderTokens() {
         const tbody = $("tokensTbody");
         const list = tokensForActive();
         if (!list.length) {
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 24px;">No tokens for this network. Click "+ Add Token" to add one.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 24px;">No tokens configured. Click "+ Add Token" to add one.</td></tr>`;
             return;
         }
         tbody.innerHTML = list.map(t => {
-            const netLabel = (networks.find(n => n.key === t.network) || {}).label || t.network;
             return `
             <tr>
                 <td><strong>${escapeHtml(t.symbol)}</strong></td>
                 <td><span class="addr" title="${escapeHtml(t.contract_address)}">${fmtAddr(t.contract_address)}</span></td>
                 <td>${t.decimals}</td>
-                <td><span class="net-pill net-${escapeHtml(t.network)}">${escapeHtml(netLabel)}</span></td>
                 <td><span class="pill ${t.is_active ? "pill-active" : "pill-inactive"}">${t.is_active ? "Active" : "Disabled"}</span></td>
                 <td class="mono">${t.last_scanned_block ? Number(t.last_scanned_block).toLocaleString() : "—"}</td>
                 <td>
@@ -223,8 +201,6 @@
         $("tokenSymbol").value = token ? token.symbol : "";
         $("tokenContract").value = token ? token.contract_address : "";
         $("tokenDecimals").value = token ? token.decimals : 6;
-        $("tokenNetwork").value = token ? token.network
-            : ((window.GlobalHeader && window.GlobalHeader.activeNetwork) || "ethereum");
         $("tokenActive").checked = token ? token.is_active : true;
         $("tokenFormError").style.display = "none";
         $("tokenModal").style.display = "flex";
@@ -242,7 +218,6 @@
             symbol: $("tokenSymbol").value.trim(),
             contract_address: $("tokenContract").value.trim(),
             decimals: parseInt($("tokenDecimals").value, 10),
-            network: $("tokenNetwork").value.trim() || (window.GlobalHeader && window.GlobalHeader.activeNetwork) || "ethereum",
             is_active: $("tokenActive").checked,
         };
         try {
@@ -656,7 +631,7 @@
             const sel = $("cfgToken");
             sel.innerHTML = '<option value="">— select token —</option>' +
                 (tkns || []).map(t =>
-                    `<option value="${escapeHtml(String(t.id))}">${escapeHtml(t.symbol)} (${escapeHtml(t.network)})</option>`
+                    `<option value="${escapeHtml(String(t.id))}">${escapeHtml(t.symbol)}</option>`
                 ).join("");
         } catch (e) {
             console.warn("loadTokensForDist:", e);
@@ -697,7 +672,6 @@
 
     // ---------- init ----------
     (async () => {
-        await loadNetworks();
         let blocklistLoaded = false;
         let airdropCfgLoaded = false;
         let brandsLoaded = false;

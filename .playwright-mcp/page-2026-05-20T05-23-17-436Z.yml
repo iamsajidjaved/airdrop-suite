@@ -1,0 +1,436 @@
+- generic [active] [ref=e1]:
+  - complementary [ref=e2]:
+    - link "Airdrop Suite" [ref=e3] [cursor=pointer]:
+      - /url: /
+      - img [ref=e5]
+      - generic [ref=e8]: Airdrop Suite
+    - navigation [ref=e9]:
+      - generic [ref=e10]: Main Menu
+      - link "Explorer" [ref=e11] [cursor=pointer]:
+        - /url: /
+        - img [ref=e12]
+        - text: Explorer
+      - link "Scanner" [ref=e17] [cursor=pointer]:
+        - /url: /admin/scanner
+        - img [ref=e18]
+        - text: Scanner
+      - link "Airdrop" [ref=e21] [cursor=pointer]:
+        - /url: /admin/airdrop
+        - img [ref=e22]
+        - text: Airdrop
+      - link "Settings" [ref=e24] [cursor=pointer]:
+        - /url: /admin/settings
+        - img [ref=e25]
+        - text: Settings
+  - banner [ref=e28]:
+    - generic [ref=e29]:
+      - generic [ref=e30]: Scanner
+      - generic [ref=e31]:
+        - generic [ref=e32]: Home
+        - generic [ref=e33]: ›
+        - generic [ref=e34]: Scanner
+    - generic [ref=e35]:
+      - generic "Active blockchain network (applies globally)" [ref=e36]:
+        - combobox "Active network" [ref=e38] [cursor=pointer]:
+          - option "Ethereum Mainnet" [selected]
+          - option "Sepolia Testnet"
+      - combobox "Scan mode" [ref=e39] [cursor=pointer]:
+        - option "Standard" [selected]
+        - option "iGaming"
+        - option "Both"
+      - button "Run Scan" [ref=e40] [cursor=pointer]:
+        - img [ref=e41]
+        - text: Run Scan
+  - main [ref=e43]:
+    - generic [ref=e44]:
+      - generic [ref=e45]:
+        - generic [ref=e46]:
+          - img [ref=e48]
+          - generic [ref=e50]:
+            - generic [ref=e51]: Stored Transfers
+            - generic [ref=e52]: "180"
+        - generic [ref=e53]:
+          - img [ref=e55]
+          - generic [ref=e58]:
+            - generic [ref=e59]: Active Tokens
+            - generic [ref=e60]: "3"
+        - generic [ref=e61]:
+          - img [ref=e63]
+          - generic [ref=e65]:
+            - generic [ref=e66]: Min Threshold (USD)
+            - generic [ref=e67]: $100
+        - generic [ref=e68]:
+          - img [ref=e70]
+          - generic [ref=e73]:
+            - generic [ref=e74]: Last Scan (UTC)
+            - generic [ref=e75]: 2026-05-19 10:47:14
+      - generic [ref=e76]:
+        - heading "Scanner Status" [level=2] [ref=e77]
+        - paragraph [ref=e78]:
+          - text: Per-token and per-brand resume points. The scanner runs only when you click
+          - strong [ref=e79]: Run Scan
+          - text: .
+        - generic [ref=e80]:
+          - generic [ref=e81]:
+            - generic [ref=e82]: Total Transfers Stored
+            - generic [ref=e83]: "180"
+          - generic [ref=e84]:
+            - generic [ref=e85]: Last Scan
+            - generic [ref=e86]: 2026-05-19 10:47:14
+          - generic [ref=e87]:
+            - generic [ref=e88]: Standard Scan — Last Scanned Block (per token)
+            - generic [ref=e89]:
+              - generic [ref=e416]:
+                - strong [ref=e417]: EURC
+                - generic [ref=e418]: 5,755,389
+              - generic [ref=e419]:
+                - strong [ref=e420]: PYUSD
+                - generic [ref=e421]: 6,921,232
+              - generic [ref=e422]:
+                - strong [ref=e423]: USDC
+                - generic [ref=e424]: 5,390,235
+          - generic [ref=e90]:
+            - generic [ref=e91]: iGaming Scan — Last Scanned Block (per brand)
+            - generic [ref=e425]:
+              - strong [ref=e426]: Stake.com
+              - generic [ref=e427]: "0"
+          - generic [ref=e93]:
+            - generic [ref=e94]: Transfers by Mode
+            - generic [ref=e95]:
+              - generic [ref=e428]:
+                - strong [ref=e429]: Standard
+                - generic [ref=e430]: "180"
+              - generic [ref=e431]:
+                - strong [ref=e432]: iGaming
+                - generic [ref=e433]: "0"
+      - generic [ref=e96]:
+        - generic [ref=e97]:
+          - generic [ref=e98]:
+            - heading "Qualifying Transactions" [level=2] [ref=e99]
+            - paragraph [ref=e100]: Transfers captured by the scanner (standard threshold or iGaming brand payouts).
+          - generic [ref=e101]:
+            - combobox "Filter by scan mode" [ref=e102] [cursor=pointer]:
+              - option "All modes" [selected]
+              - option "Standard"
+              - option "iGaming"
+            - combobox [ref=e103] [cursor=pointer]:
+              - option "All tokens" [selected]
+              - option "EURC"
+              - option "PYUSD"
+              - option "USDC"
+            - button "Refresh" [ref=e104] [cursor=pointer]
+        - table [ref=e106]:
+          - rowgroup [ref=e107]:
+            - row "Time (UTC) Mode Token Amount From To Tx" [ref=e108]:
+              - columnheader "Time (UTC)" [ref=e109] [cursor=pointer]
+              - columnheader "Mode" [ref=e110] [cursor=pointer]
+              - columnheader "Token" [ref=e111] [cursor=pointer]
+              - columnheader "Amount" [ref=e112] [cursor=pointer]
+              - columnheader "From" [ref=e113] [cursor=pointer]
+              - columnheader "To" [ref=e114] [cursor=pointer]
+              - columnheader "Tx" [ref=e115] [cursor=pointer]
+          - rowgroup [ref=e116]:
+            - row "2024-09-03 15:22:24 Standard PYUSD 102.68 0x4c1744…604fb9 0x343fad…247e4b 0x41a058…44a6a3" [ref=e434]:
+              - cell "2024-09-03 15:22:24" [ref=e435]
+              - cell "Standard" [ref=e436]
+              - cell "PYUSD" [ref=e437]:
+                - strong [ref=e438]: PYUSD
+              - cell "102.68" [ref=e439]:
+                - strong [ref=e440]: "102.68"
+              - cell "0x4c1744…604fb9" [ref=e441]
+              - cell "0x343fad…247e4b" [ref=e442]
+              - cell "0x41a058…44a6a3" [ref=e443]:
+                - link "0x41a058…44a6a3" [ref=e444] [cursor=pointer]:
+                  - /url: https://sepolia.etherscan.io/tx/0x41a058143383a4b93e140f7ee0aa641db4073d9632aaf464c12d40bfb644a6a3
+            - row "2024-09-03 15:22:12 Standard PYUSD 200 0x213627…18c070 0x343fad…247e4b 0xda57bf…f42b39" [ref=e445]:
+              - cell "2024-09-03 15:22:12" [ref=e446]
+              - cell "Standard" [ref=e447]
+              - cell "PYUSD" [ref=e448]:
+                - strong [ref=e449]: PYUSD
+              - cell "200" [ref=e450]:
+                - strong [ref=e451]: "200"
+              - cell "0x213627…18c070" [ref=e452]
+              - cell "0x343fad…247e4b" [ref=e453]
+              - cell "0xda57bf…f42b39" [ref=e454]:
+                - link "0xda57bf…f42b39" [ref=e455] [cursor=pointer]:
+                  - /url: https://sepolia.etherscan.io/tx/0xda57bf8652085a079cdd2c4d2069a0f8730a6928eb9a7a9d8b85f0177cf42b39
+            - row "2024-09-03 15:22:12 Standard PYUSD 103.31 0x6cb002…a95566 0x343fad…247e4b 0xae5784…696055" [ref=e456]:
+              - cell "2024-09-03 15:22:12" [ref=e457]
+              - cell "Standard" [ref=e458]
+              - cell "PYUSD" [ref=e459]:
+                - strong [ref=e460]: PYUSD
+              - cell "103.31" [ref=e461]:
+                - strong [ref=e462]: "103.31"
+              - cell "0x6cb002…a95566" [ref=e463]
+              - cell "0x343fad…247e4b" [ref=e464]
+              - cell "0xae5784…696055" [ref=e465]:
+                - link "0xae5784…696055" [ref=e466] [cursor=pointer]:
+                  - /url: https://sepolia.etherscan.io/tx/0xae57844bb172269a5c16cb70d22db92eec969dd80afb0304307acfe127696055
+            - row "2024-09-03 15:21:12 Standard PYUSD 987.32 0x2d09d8…bfaf93 0x343fad…247e4b 0xf2f8cb…544a96" [ref=e467]:
+              - cell "2024-09-03 15:21:12" [ref=e468]
+              - cell "Standard" [ref=e469]
+              - cell "PYUSD" [ref=e470]:
+                - strong [ref=e471]: PYUSD
+              - cell "987.32" [ref=e472]:
+                - strong [ref=e473]: "987.32"
+              - cell "0x2d09d8…bfaf93" [ref=e474]
+              - cell "0x343fad…247e4b" [ref=e475]
+              - cell "0xf2f8cb…544a96" [ref=e476]:
+                - link "0xf2f8cb…544a96" [ref=e477] [cursor=pointer]:
+                  - /url: https://sepolia.etherscan.io/tx/0xf2f8cb8844826dacefa33ee6a9936585fd30becc313a2476b9005c3a32544a96
+            - row "2024-08-20 16:37:48 Standard PYUSD 672,059.51 0x000000…000000 0xcc9644…2f70a3 0x23191a…5c500a" [ref=e478]:
+              - cell "2024-08-20 16:37:48" [ref=e479]
+              - cell "Standard" [ref=e480]
+              - cell "PYUSD" [ref=e481]:
+                - strong [ref=e482]: PYUSD
+              - cell "672,059.51" [ref=e483]:
+                - strong [ref=e484]: 672,059.51
+              - cell "0x000000…000000" [ref=e485]
+              - cell "0xcc9644…2f70a3" [ref=e486]
+              - cell "0x23191a…5c500a" [ref=e487]:
+                - link "0x23191a…5c500a" [ref=e488] [cursor=pointer]:
+                  - /url: https://sepolia.etherscan.io/tx/0x23191a1e250776d7179d9674ce9f0240a61db741ca0a4c889ca9c6b26f5c500a
+            - row "2024-08-01 18:19:24 Standard PYUSD 110 0x29a4d9…b66bf3 0xcc9644…2f70a3 0x965101…d99ed6" [ref=e489]:
+              - cell "2024-08-01 18:19:24" [ref=e490]
+              - cell "Standard" [ref=e491]
+              - cell "PYUSD" [ref=e492]:
+                - strong [ref=e493]: PYUSD
+              - cell "110" [ref=e494]:
+                - strong [ref=e495]: "110"
+              - cell "0x29a4d9…b66bf3" [ref=e496]
+              - cell "0xcc9644…2f70a3" [ref=e497]
+              - cell "0x965101…d99ed6" [ref=e498]:
+                - link "0x965101…d99ed6" [ref=e499] [cursor=pointer]:
+                  - /url: https://sepolia.etherscan.io/tx/0x965101d3e7aff1c74d99dfe3b5093315baf8f832672cfc4e08fedf4a50d99ed6
+            - row "2024-07-01 10:00:12 Standard PYUSD 280 0x225080…715d2b 0x63819c…80fc71 0x6a77a8…4dc71c" [ref=e500]:
+              - cell "2024-07-01 10:00:12" [ref=e501]
+              - cell "Standard" [ref=e502]
+              - cell "PYUSD" [ref=e503]:
+                - strong [ref=e504]: PYUSD
+              - cell "280" [ref=e505]:
+                - strong [ref=e506]: "280"
+              - cell "0x225080…715d2b" [ref=e507]
+              - cell "0x63819c…80fc71" [ref=e508]
+              - cell "0x6a77a8…4dc71c" [ref=e509]:
+                - link "0x6a77a8…4dc71c" [ref=e510] [cursor=pointer]:
+                  - /url: https://sepolia.etherscan.io/tx/0x6a77a87ab76e3b90255baf828f26f580460e2e3ea1d20e88b3b62e9cf94dc71c
+            - row "2024-07-01 09:03:24 Standard PYUSD 420 0x2a0dbe…526aef 0x63819c…80fc71 0x280a57…21e607" [ref=e511]:
+              - cell "2024-07-01 09:03:24" [ref=e512]
+              - cell "Standard" [ref=e513]
+              - cell "PYUSD" [ref=e514]:
+                - strong [ref=e515]: PYUSD
+              - cell "420" [ref=e516]:
+                - strong [ref=e517]: "420"
+              - cell "0x2a0dbe…526aef" [ref=e518]
+              - cell "0x63819c…80fc71" [ref=e519]
+              - cell "0x280a57…21e607" [ref=e520]:
+                - link "0x280a57…21e607" [ref=e521] [cursor=pointer]:
+                  - /url: https://sepolia.etherscan.io/tx/0x280a57d6fb4f997c4e14acc482143837b0e66487cbdb85cd34ce69baa621e607
+            - row "2024-05-18 20:18:48 Standard PYUSD 100 0x4c1744…604fb9 0xcc9644…2f70a3 0x90cf8d…dff032" [ref=e522]:
+              - cell "2024-05-18 20:18:48" [ref=e523]
+              - cell "Standard" [ref=e524]
+              - cell "PYUSD" [ref=e525]:
+                - strong [ref=e526]: PYUSD
+              - cell "100" [ref=e527]:
+                - strong [ref=e528]: "100"
+              - cell "0x4c1744…604fb9" [ref=e529]
+              - cell "0xcc9644…2f70a3" [ref=e530]
+              - cell "0x90cf8d…dff032" [ref=e531]:
+                - link "0x90cf8d…dff032" [ref=e532] [cursor=pointer]:
+                  - /url: https://sepolia.etherscan.io/tx/0x90cf8da1ca520043af3418997ce6b0e7a0da9c3f0df5b13012fb41a1eedff032
+            - row "2024-05-09 16:00:48 Standard PYUSD 100 0x4c1744…604fb9 0xcc9644…2f70a3 0xbb52e8…c976da" [ref=e533]:
+              - cell "2024-05-09 16:00:48" [ref=e534]
+              - cell "Standard" [ref=e535]
+              - cell "PYUSD" [ref=e536]:
+                - strong [ref=e537]: PYUSD
+              - cell "100" [ref=e538]:
+                - strong [ref=e539]: "100"
+              - cell "0x4c1744…604fb9" [ref=e540]
+              - cell "0xcc9644…2f70a3" [ref=e541]
+              - cell "0xbb52e8…c976da" [ref=e542]:
+                - link "0xbb52e8…c976da" [ref=e543] [cursor=pointer]:
+                  - /url: https://sepolia.etherscan.io/tx/0xbb52e84e84e368d277555113b04c6a2e7b94199443d7c1d2f8c080fc79c976da
+            - row "2024-05-08 18:52:00 Standard PYUSD 821.6 0x4c1744…604fb9 0xcc9644…2f70a3 0x10a537…5c1287" [ref=e544]:
+              - cell "2024-05-08 18:52:00" [ref=e545]
+              - cell "Standard" [ref=e546]
+              - cell "PYUSD" [ref=e547]:
+                - strong [ref=e548]: PYUSD
+              - cell "821.6" [ref=e549]:
+                - strong [ref=e550]: "821.6"
+              - cell "0x4c1744…604fb9" [ref=e551]
+              - cell "0xcc9644…2f70a3" [ref=e552]
+              - cell "0x10a537…5c1287" [ref=e553]:
+                - link "0x10a537…5c1287" [ref=e554] [cursor=pointer]:
+                  - /url: https://sepolia.etherscan.io/tx/0x10a5371a25e99c2f9672d46414c955fd3f9c626aaadef505e6995e11685c1287
+            - row "2024-04-12 21:03:24 Standard EURC 858.96 0x000000…000000 0x6dbe81…cda5d2 0x7b0663…3a654d" [ref=e555]:
+              - cell "2024-04-12 21:03:24" [ref=e556]
+              - cell "Standard" [ref=e557]
+              - cell "EURC" [ref=e558]:
+                - strong [ref=e559]: EURC
+              - cell "858.96" [ref=e560]:
+                - strong [ref=e561]: "858.96"
+              - cell "0x000000…000000" [ref=e562]
+              - cell "0x6dbe81…cda5d2" [ref=e563]
+              - cell "0x7b0663…3a654d" [ref=e564]:
+                - link "0x7b0663…3a654d" [ref=e565] [cursor=pointer]:
+                  - /url: https://sepolia.etherscan.io/tx/0x7b06637db6552e4dbc10b6fd6dbc18af4d57e5bf68f2295c9c4a93271f3a654d
+            - row "2024-04-12 16:06:24 Standard EURC 153.58 0x000000…000000 0x8b32c5…672a10 0xaaa36e…71da92" [ref=e566]:
+              - cell "2024-04-12 16:06:24" [ref=e567]
+              - cell "Standard" [ref=e568]
+              - cell "EURC" [ref=e569]:
+                - strong [ref=e570]: EURC
+              - cell "153.58" [ref=e571]:
+                - strong [ref=e572]: "153.58"
+              - cell "0x000000…000000" [ref=e573]
+              - cell "0x8b32c5…672a10" [ref=e574]
+              - cell "0xaaa36e…71da92" [ref=e575]:
+                - link "0xaaa36e…71da92" [ref=e576] [cursor=pointer]:
+                  - /url: https://sepolia.etherscan.io/tx/0xaaa36e12c9b134d2b5917e24834b5f7d8934dd4fb3f732b8f55a023fa971da92
+            - row "2024-04-10 15:18:36 Standard EURC 104.96 0x000000…000000 0x8b32c5…672a10 0x3b9ecd…1d05bd" [ref=e577]:
+              - cell "2024-04-10 15:18:36" [ref=e578]
+              - cell "Standard" [ref=e579]
+              - cell "EURC" [ref=e580]:
+                - strong [ref=e581]: EURC
+              - cell "104.96" [ref=e582]:
+                - strong [ref=e583]: "104.96"
+              - cell "0x000000…000000" [ref=e584]
+              - cell "0x8b32c5…672a10" [ref=e585]
+              - cell "0x3b9ecd…1d05bd" [ref=e586]:
+                - link "0x3b9ecd…1d05bd" [ref=e587] [cursor=pointer]:
+                  - /url: https://sepolia.etherscan.io/tx/0x3b9ecd79bba08f24ad6027274b546033ad291e3bdba25b1bb45583ff311d05bd
+            - row "2024-04-10 13:17:24 Standard EURC 110.25 0x000000…000000 0x8b32c5…672a10 0xa2cb4f…da7f73" [ref=e588]:
+              - cell "2024-04-10 13:17:24" [ref=e589]
+              - cell "Standard" [ref=e590]
+              - cell "EURC" [ref=e591]:
+                - strong [ref=e592]: EURC
+              - cell "110.25" [ref=e593]:
+                - strong [ref=e594]: "110.25"
+              - cell "0x000000…000000" [ref=e595]
+              - cell "0x8b32c5…672a10" [ref=e596]
+              - cell "0xa2cb4f…da7f73" [ref=e597]:
+                - link "0xa2cb4f…da7f73" [ref=e598] [cursor=pointer]:
+                  - /url: https://sepolia.etherscan.io/tx/0xa2cb4fef1c43bed6711714fd92857bfb141c248d5223b11f14d11463cfda7f73
+            - row "2024-04-10 12:35:36 Standard EURC 263.17 0x000000…000000 0x8b32c5…672a10 0x1eaa62…33766a" [ref=e599]:
+              - cell "2024-04-10 12:35:36" [ref=e600]
+              - cell "Standard" [ref=e601]
+              - cell "EURC" [ref=e602]:
+                - strong [ref=e603]: EURC
+              - cell "263.17" [ref=e604]:
+                - strong [ref=e605]: "263.17"
+              - cell "0x000000…000000" [ref=e606]
+              - cell "0x8b32c5…672a10" [ref=e607]
+              - cell "0x1eaa62…33766a" [ref=e608]:
+                - link "0x1eaa62…33766a" [ref=e609] [cursor=pointer]:
+                  - /url: https://sepolia.etherscan.io/tx/0x1eaa62e3a631f7e1570903755b377f2569421340bd6dac19f42c00811533766a
+            - row "2024-04-05 18:43:24 Standard EURC 101.3 0x000000…000000 0x8b32c5…672a10 0xa943bf…19b93d" [ref=e610]:
+              - cell "2024-04-05 18:43:24" [ref=e611]
+              - cell "Standard" [ref=e612]
+              - cell "EURC" [ref=e613]:
+                - strong [ref=e614]: EURC
+              - cell "101.3" [ref=e615]:
+                - strong [ref=e616]: "101.3"
+              - cell "0x000000…000000" [ref=e617]
+              - cell "0x8b32c5…672a10" [ref=e618]
+              - cell "0xa943bf…19b93d" [ref=e619]:
+                - link "0xa943bf…19b93d" [ref=e620] [cursor=pointer]:
+                  - /url: https://sepolia.etherscan.io/tx/0xa943bf24dc61b94c0cf7a4fa160b05a402e406660d448638fe52b0387819b93d
+            - row "2024-04-05 09:19:12 Standard EURC 11,629,799.53 0x000000…000000 0x75c0c3…8904e8 0x722026…47982f" [ref=e621]:
+              - cell "2024-04-05 09:19:12" [ref=e622]
+              - cell "Standard" [ref=e623]
+              - cell "EURC" [ref=e624]:
+                - strong [ref=e625]: EURC
+              - cell "11,629,799.53" [ref=e626]:
+                - strong [ref=e627]: 11,629,799.53
+              - cell "0x000000…000000" [ref=e628]
+              - cell "0x75c0c3…8904e8" [ref=e629]
+              - cell "0x722026…47982f" [ref=e630]:
+                - link "0x722026…47982f" [ref=e631] [cursor=pointer]:
+                  - /url: https://sepolia.etherscan.io/tx/0x722026484364ffc8d1e68b7119f46ee6f0238e80df709de1d8ae35c56847982f
+            - row "2024-04-05 09:14:24 Standard EURC 12,666,958.53 0x000000…000000 0x75c0c3…8904e8 0xfe0454…fa5b40" [ref=e632]:
+              - cell "2024-04-05 09:14:24" [ref=e633]
+              - cell "Standard" [ref=e634]
+              - cell "EURC" [ref=e635]:
+                - strong [ref=e636]: EURC
+              - cell "12,666,958.53" [ref=e637]:
+                - strong [ref=e638]: 12,666,958.53
+              - cell "0x000000…000000" [ref=e639]
+              - cell "0x75c0c3…8904e8" [ref=e640]
+              - cell "0xfe0454…fa5b40" [ref=e641]:
+                - link "0xfe0454…fa5b40" [ref=e642] [cursor=pointer]:
+                  - /url: https://sepolia.etherscan.io/tx/0xfe0454ac1c420864d39098a344b8a0f980a193c65cfd4bd0a639d0f62afa5b40
+            - row "2024-04-04 14:41:36 Standard EURC 120 0x91a9d4…a55ef3 0x8b32c5…672a10 0x4978d1…ad8e83" [ref=e643]:
+              - cell "2024-04-04 14:41:36" [ref=e644]
+              - cell "Standard" [ref=e645]
+              - cell "EURC" [ref=e646]:
+                - strong [ref=e647]: EURC
+              - cell "120" [ref=e648]:
+                - strong [ref=e649]: "120"
+              - cell "0x91a9d4…a55ef3" [ref=e650]
+              - cell "0x8b32c5…672a10" [ref=e651]
+              - cell "0x4978d1…ad8e83" [ref=e652]:
+                - link "0x4978d1…ad8e83" [ref=e653] [cursor=pointer]:
+                  - /url: https://sepolia.etherscan.io/tx/0x4978d1ffd648b11137ed24044682929a97d2fc4d8d0d6ad0f4c09a047dad8e83
+            - row "2024-03-27 19:12:24 Standard EURC 53,032.34 0x000000…000000 0x6dbe81…cda5d2 0x9dd109…dd3f75" [ref=e654]:
+              - cell "2024-03-27 19:12:24" [ref=e655]
+              - cell "Standard" [ref=e656]
+              - cell "EURC" [ref=e657]:
+                - strong [ref=e658]: EURC
+              - cell "53,032.34" [ref=e659]:
+                - strong [ref=e660]: 53,032.34
+              - cell "0x000000…000000" [ref=e661]
+              - cell "0x6dbe81…cda5d2" [ref=e662]
+              - cell "0x9dd109…dd3f75" [ref=e663]:
+                - link "0x9dd109…dd3f75" [ref=e664] [cursor=pointer]:
+                  - /url: https://sepolia.etherscan.io/tx/0x9dd1093750426514789ef3a62afe45bb4ca564811abdd9aaeda3023131dd3f75
+            - row "2024-03-27 18:12:24 Standard EURC 203.94 0x000000…000000 0x6dbe81…cda5d2 0xa86326…524ecb" [ref=e665]:
+              - cell "2024-03-27 18:12:24" [ref=e666]
+              - cell "Standard" [ref=e667]
+              - cell "EURC" [ref=e668]:
+                - strong [ref=e669]: EURC
+              - cell "203.94" [ref=e670]:
+                - strong [ref=e671]: "203.94"
+              - cell "0x000000…000000" [ref=e672]
+              - cell "0x6dbe81…cda5d2" [ref=e673]
+              - cell "0xa86326…524ecb" [ref=e674]:
+                - link "0xa86326…524ecb" [ref=e675] [cursor=pointer]:
+                  - /url: https://sepolia.etherscan.io/tx/0xa863263b8fe53b9c5b628f277dd160a03b89300b5d0e9cf8dca0e81e79524ecb
+            - row "2024-03-25 23:58:24 Standard EURC 1,000 0x082cb2…671602 0x6dbe81…cda5d2 0xba7f4b…bc3c06" [ref=e676]:
+              - cell "2024-03-25 23:58:24" [ref=e677]
+              - cell "Standard" [ref=e678]
+              - cell "EURC" [ref=e679]:
+                - strong [ref=e680]: EURC
+              - cell "1,000" [ref=e681]:
+                - strong [ref=e682]: 1,000
+              - cell "0x082cb2…671602" [ref=e683]
+              - cell "0x6dbe81…cda5d2" [ref=e684]
+              - cell "0xba7f4b…bc3c06" [ref=e685]:
+                - link "0xba7f4b…bc3c06" [ref=e686] [cursor=pointer]:
+                  - /url: https://sepolia.etherscan.io/tx/0xba7f4b030b694edfe098717564426d60c1d671b37b0c95fc1ea8f162aabc3c06
+            - row "2024-03-06 18:25:00 Standard PYUSD 9,867,946.32 0x29a4d9…b66bf3 0xcc9644…2f70a3 0x698ff6…4ff1fc" [ref=e687]:
+              - cell "2024-03-06 18:25:00" [ref=e688]
+              - cell "Standard" [ref=e689]
+              - cell "PYUSD" [ref=e690]:
+                - strong [ref=e691]: PYUSD
+              - cell "9,867,946.32" [ref=e692]:
+                - strong [ref=e693]: 9,867,946.32
+              - cell "0x29a4d9…b66bf3" [ref=e694]
+              - cell "0xcc9644…2f70a3" [ref=e695]
+              - cell "0x698ff6…4ff1fc" [ref=e696]:
+                - link "0x698ff6…4ff1fc" [ref=e697] [cursor=pointer]:
+                  - /url: https://sepolia.etherscan.io/tx/0x698ff6eea09e4d8d0efb6a88668ae89358254d77d56de8ab9ad95a64554ff1fc
+            - row "2024-02-29 20:31:24 Standard USDC 100 0x000000…000000 0x75c0c3…8904e8 0x207d10…c1d28c" [ref=e698]:
+              - cell "2024-02-29 20:31:24" [ref=e699]
+              - cell "Standard" [ref=e700]
+              - cell "USDC" [ref=e701]:
+                - strong [ref=e702]: USDC
+              - cell "100" [ref=e703]:
+                - strong [ref=e704]: "100"
+              - cell "0x000000…000000" [ref=e705]
+              - cell "0x75c0c3…8904e8" [ref=e706]
+              - cell "0x207d10…c1d28c" [ref=e707]:
+                - link "0x207d10…c1d28c" [ref=e708] [cursor=pointer]:
+                  - /url: https://sepolia.etherscan.io/tx/0x207d10c4f76d4f0cc75109d8c9f0ca5b24d5622c71a1ef2c9ac448a5b4c1d28c
+        - generic [ref=e119]:
+          - button "‹ Prev" [disabled] [ref=e120] [cursor=pointer]
+          - generic [ref=e121]: 1–25 of 180
+          - button "Next ›" [ref=e122] [cursor=pointer]

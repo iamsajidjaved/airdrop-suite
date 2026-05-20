@@ -1,0 +1,11 @@
+[      59ms] [LOG] [explorer] URL search: ?address=0x1234 @ http://127.0.0.1:8000/static/js/explorer.js?v=7:22
+[      59ms] [LOG] [explorer] fromDate resolved: null | toDate resolved: null @ http://127.0.0.1:8000/static/js/explorer.js?v=7:23
+[      60ms] [LOG] [fetch] walletAddress: 0x1234 @ http://127.0.0.1:8000/static/js/explorer.js?v=7:85
+[      60ms] [LOG] [fetch] fromDate: null | toDate: null @ http://127.0.0.1:8000/static/js/explorer.js?v=7:86
+[      60ms] [LOG] [fetch] API URL: /api/transactions/0x1234 @ http://127.0.0.1:8000/static/js/explorer.js?v=7:87
+[      80ms] [ERROR] Failed to load resource: the server responded with a status of 400 (Bad Request) @ http://127.0.0.1:8000/api/transactions/0x1234:0
+[      80ms] [LOG] Response status: 400 @ http://127.0.0.1:8000/static/js/explorer.js?v=7:90
+[      82ms] [ERROR] Error response: {"detail":"Invalid wallet address format. Expected Ethereum (0x...) or Tron (T...)"} @ http://127.0.0.1:8000/static/js/explorer.js?v=7:94
+[      82ms] [ERROR] Error fetching transactions: Error: Failed to fetch transactions
+    at fetchTransactions (http://127.0.0.1:8000/static/js/explorer.js?v=7:96:19)
+    at async init (http://127.0.0.1:8000/static/js/explorer.js?v=7:72:5) @ http://127.0.0.1:8000/static/js/explorer.js?v=7:112

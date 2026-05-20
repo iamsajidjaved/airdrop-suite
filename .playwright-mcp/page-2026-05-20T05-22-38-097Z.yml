@@ -1,0 +1,75 @@
+- generic [ref=e1]:
+  - complementary [ref=e2]:
+    - link "Airdrop Suite" [ref=e3] [cursor=pointer]:
+      - /url: /
+      - img [ref=e5]
+      - generic [ref=e8]: Airdrop Suite
+    - navigation [ref=e9]:
+      - generic [ref=e10]: Main Menu
+      - link "Explorer" [ref=e11] [cursor=pointer]:
+        - /url: /
+        - img [ref=e12]
+        - text: Explorer
+      - link "Scanner" [ref=e17] [cursor=pointer]:
+        - /url: /admin/scanner
+        - img [ref=e18]
+        - text: Scanner
+      - link "Airdrop" [ref=e21] [cursor=pointer]:
+        - /url: /admin/airdrop
+        - img [ref=e22]
+        - text: Airdrop
+      - link "Settings" [ref=e24] [cursor=pointer]:
+        - /url: /admin/settings
+        - img [ref=e25]
+        - text: Settings
+  - banner [ref=e28]:
+    - generic [ref=e29]:
+      - generic [ref=e30]: Explorer
+      - generic [ref=e31]:
+        - generic [ref=e32]: Home
+        - generic [ref=e33]: ›
+        - generic [ref=e34]: New Search
+    - generic [ref=e35]:
+      - generic "Active blockchain network (applies globally)" [ref=e36]:
+        - combobox "Active network" [ref=e38] [cursor=pointer]:
+          - option "Ethereum Mainnet" [selected]
+          - option "Sepolia Testnet"
+      - combobox "Scan mode" [ref=e39] [cursor=pointer]:
+        - option "Standard" [selected]
+        - option "iGaming"
+        - option "Both"
+      - button "Run Scan" [ref=e40] [cursor=pointer]:
+        - img [ref=e41]
+        - text: Run Scan
+  - main [ref=e43]:
+    - generic [ref=e46]:
+      - heading "New Wallet Search" [level=2] [ref=e47]
+      - paragraph [ref=e48]: Enter a wallet address to explore ERC-20 and TRC-20 transaction history.
+      - generic [ref=e49]:
+        - generic [ref=e50]:
+          - generic [ref=e51]: Wallet Address
+          - textbox "Wallet Address" [active] [ref=e53]:
+            - /placeholder: Enter address (0x... or T...)
+        - generic [ref=e54]:
+          - generic [ref=e55]:
+            - generic [ref=e56]: From Date (optional)
+            - textbox "From Date (optional)" [ref=e57] [cursor=pointer]
+          - generic [ref=e58]:
+            - generic [ref=e59]: To Date (optional)
+            - textbox "To Date (optional)" [ref=e60] [cursor=pointer]
+        - generic [ref=e61]:
+          - strong [ref=e62]: Supported Networks
+          - generic [ref=e63]:
+            - generic [ref=e64]: ERC
+            - text: Ethereum — address starts with
+            - code [ref=e65]: 0x
+          - generic [ref=e66]:
+            - generic [ref=e67]: TRC
+            - text: Tron — address starts with
+            - code [ref=e68]: T
+        - button "Get Transactions" [disabled] [ref=e69]
+      - generic [ref=e70]:
+        - paragraph [ref=e71]: "Try an example address:"
+        - generic [ref=e72]:
+          - button "ETH Example" [ref=e73] [cursor=pointer]
+          - button "TRX Example" [ref=e74] [cursor=pointer]
