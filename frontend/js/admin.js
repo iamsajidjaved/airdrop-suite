@@ -1,7 +1,8 @@
-/* Scanner — KPI strip, status, iGaming brands, qualifying-transactions table.
+/* Scanner — KPI strip, status, qualifying-transactions table.
  *
  * Network is now a global DB-backed setting (active_network in airdrop_config).
  * Changing it here saves to the API and takes effect on the next scan.
+ * iGaming brand management has moved to /admin/settings#brands.
  */
 (() => {
     const API = "/api/airdrop";
@@ -38,7 +39,6 @@
     // -------- state --------
     let tokens = [];
     let networks = [];
-    let brands = [];
     let activeNetwork = (window.GlobalHeader && window.GlobalHeader.activeNetwork) || "ethereum";
     let txOffset = 0;
     const TX_LIMIT = 25;
@@ -126,109 +126,6 @@
         sel.value = current;
     }
 
-    // -------- iGaming Brands --------
-    async function loadBrands() {
-        try {
-            brands = await api("/brands");
-            renderBrands();
-        } catch (e) {
-            $("brandsTbody").innerHTML = `<tr><td colspan="6" style="color:var(--accent-danger);padding:16px;">${escHtml(e.message)}</td></tr>`;
-        }
-    }
-
-    function renderBrands() {
-        const tbody = $("brandsTbody");
-        if (!brands.length) {
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px;">No brands configured. Click <strong>+ Add Brand</strong> to add one.</td></tr>`;
-            return;
-        }
-        tbody.innerHTML = brands.map(b => `
-            <tr>
-                <td><strong>${escHtml(b.name)}</strong>${b.description ? `<br><small style="color:var(--text-muted)">${escHtml(b.description)}</small>` : ""}</td>
-                <td><span class="addr mono" title="${escHtml(b.wallet_address)}">${fmtAddr(b.wallet_address)}</span></td>
-                <td class="mono">${b.last_scanned_block ? b.last_scanned_block.toLocaleString() : "—"}</td>
-                <td>${(b.transaction_count || 0).toLocaleString()}</td>
-                <td><span class="status-badge ${b.is_active ? "badge-confirmed" : "badge-failed"}">${b.is_active ? "Active" : "Inactive"}</span></td>
-                <td>
-                    <button class="btn btn-secondary btn-sm" onclick="editBrand(${b.id})">Edit</button>
-                    <button class="btn btn-sm" style="background:var(--accent-danger,#ef4444);color:#fff;margin-left:4px;" onclick="deleteBrand(${b.id},'${escHtml(b.name)}')">Delete</button>
-                </td>
-            </tr>`).join("");
-    }
-
-    // Brand modal helpers
-    function openBrandModal(brand = null) {
-        $("brandModalTitle").textContent = brand ? "Edit Brand" : "Add iGaming Brand";
-        $("brandId").value = brand ? brand.id : "";
-        $("brandName").value = brand ? brand.name : "";
-        $("brandWallet").value = brand ? brand.wallet_address : "";
-        $("brandDesc").value = brand ? (brand.description || "") : "";
-        $("brandActive").checked = brand ? brand.is_active : true;
-        $("brandWallet").readOnly = !!brand; // wallet address can't be changed after creation
-        $("brandFormError").style.display = "none";
-        $("brandModal").style.display = "flex";
-        $("brandName").focus();
-    }
-
-    function closeBrandModal() {
-        $("brandModal").style.display = "none";
-    }
-
-    $("addBrandBtn").addEventListener("click", () => openBrandModal());
-    $("brandModalClose").addEventListener("click", closeBrandModal);
-    $("brandCancelBtn").addEventListener("click", closeBrandModal);
-    $("brandModal").addEventListener("click", (e) => { if (e.target === $("brandModal")) closeBrandModal(); });
-
-    window.editBrand = function(id) {
-        const brand = brands.find(b => b.id === id);
-        if (brand) openBrandModal(brand);
-    };
-
-    window.deleteBrand = async function(id, name) {
-        if (!confirm(`Delete brand "${name}"? This will also remove the FK link from iGaming transactions (they remain, but won't reference this brand).`)) return;
-        try {
-            await api(`/brands/${id}`, { method: "DELETE" });
-            await loadBrands();
-        } catch (e) {
-            alert(`Failed to delete: ${e.message}`);
-        }
-    };
-
-    $("brandSaveBtn").addEventListener("click", async () => {
-        const id = $("brandId").value;
-        const name = $("brandName").value.trim();
-        const wallet = $("brandWallet").value.trim();
-        const desc = $("brandDesc").value.trim();
-        const active = $("brandActive").checked;
-        const errEl = $("brandFormError");
-
-        if (!name) { errEl.textContent = "Brand name is required."; errEl.style.display = "block"; return; }
-        if (!id && !wallet) { errEl.textContent = "Wallet address is required."; errEl.style.display = "block"; return; }
-
-        $("brandSaveBtn").disabled = true;
-        errEl.style.display = "none";
-        try {
-            if (id) {
-                await api(`/brands/${id}`, {
-                    method: "PATCH",
-                    body: JSON.stringify({ name, description: desc || null, is_active: active }),
-                });
-            } else {
-                await api("/brands", {
-                    method: "POST",
-                    body: JSON.stringify({ name, wallet_address: wallet, description: desc || null, is_active: active }),
-                });
-            }
-            closeBrandModal();
-            await loadBrands();
-        } catch (e) {
-            errEl.textContent = e.message;
-            errEl.style.display = "block";
-        } finally {
-            $("brandSaveBtn").disabled = false;
-        }
-    });
-
     // -------- transactions --------
     async function loadTx() {
         const tokenSym = $("txTokenFilter").value;
@@ -299,14 +196,14 @@
     });
 
     document.addEventListener("scancomplete", async () => {
-        await Promise.all([loadStatus(), loadBrands(), loadTokens(), loadTx()]);
+        await Promise.all([loadStatus(), loadTokens(), loadTx()]);
     });
 
     // -------- init --------
     (async () => {
         await loadNetworks();   // populates local networks[] for explorerFor()
         await loadConfig();     // reads threshold KPI + syncs activeNetwork from GlobalHeader
-        await Promise.all([loadStatus(), loadTokens(), loadBrands()]);
+        await Promise.all([loadStatus(), loadTokens()]);
         await loadTx();
     })();
 })();

@@ -3,14 +3,16 @@
  * Renders: network selector (dot + <select>), scan mode <select>, Run Scan button.
  * Network changes: DB-backed via PUT /api/airdrop/config.
  * Scan mode: persisted in localStorage.
+ * iGaming / Both options are hidden when no brands are configured.
  *
  * Dispatches on document:
  *   "networkchange"  { detail: { network: string } }
  *   "scancomplete"   { detail: { result: object } }
  *
  * Exposes:
- *   window.GlobalHeader.activeNetwork  (string, updated after each network change)
- *   window.GlobalHeader.networks       (array, populated after loadNetworks)
+ *   window.GlobalHeader.activeNetwork          (string, updated after each network change)
+ *   window.GlobalHeader.networks               (array, populated after loadNetworks)
+ *   window.GlobalHeader.refreshScanModeOptions (fn, call with updated brands array to sync dropdown)
  */
 (() => {
     const API = "/api/airdrop";
@@ -36,6 +38,7 @@
 
     let networks = [];
     let activeNetwork = "ethereum";
+    let hasBrands = false;
 
     function renderControls() {
         const container = document.getElementById("globalHeaderActions");
@@ -101,6 +104,37 @@
         dot.classList.add(activeNetwork === "ethereum" ? "net-mainnet" : "net-testnet");
     }
 
+    async function loadBrands() {
+        try {
+            const brands = await apiCall("/brands");
+            hasBrands = Array.isArray(brands) && brands.length > 0;
+        } catch {
+            hasBrands = false;
+        }
+        applyScanModeVisibility();
+    }
+
+    function applyScanModeVisibility() {
+        const modeSel = document.getElementById("globalScanModeSelect");
+        if (!modeSel) return;
+        const igamingOpt = modeSel.querySelector('option[value="igaming"]');
+        const bothOpt    = modeSel.querySelector('option[value="both"]');
+        if (!igamingOpt || !bothOpt) return;
+
+        igamingOpt.hidden = !hasBrands;
+        bothOpt.hidden    = !hasBrands;
+
+        if (!hasBrands && (modeSel.value === "igaming" || modeSel.value === "both")) {
+            modeSel.value = "standard";
+            localStorage.setItem(SCAN_MODE_KEY, "standard");
+        }
+    }
+
+    function refreshScanModeOptions(brandsArray) {
+        hasBrands = Array.isArray(brandsArray) && brandsArray.length > 0;
+        applyScanModeVisibility();
+    }
+
     function attachListeners() {
         const netSel  = document.getElementById("globalNetworkSelect");
         const modeSel = document.getElementById("globalScanModeSelect");
@@ -160,11 +194,12 @@
         });
     }
 
-    window.GlobalHeader = { activeNetwork, networks: [] };
+    window.GlobalHeader = { activeNetwork, networks: [], refreshScanModeOptions };
 
     (async () => {
         renderControls();
         await loadNetworks();
         await loadConfig();
+        await loadBrands();
     })();
 })();

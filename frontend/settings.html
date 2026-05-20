@@ -96,6 +96,10 @@
                     <svg class="tab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l18-9-9 18-2-7-7-2z"/></svg>
                     Airdrop
                 </button>
+                <button class="settings-tab" data-tab="brands" role="tab">
+                    <svg class="tab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                    Brands
+                </button>
             </nav>
 
             <!-- ===== THRESHOLD ===== -->
@@ -348,8 +352,70 @@
                 </div>
             </section>
 
+            <!-- ===== iGAMING BRANDS ===== -->
+            <section id="settings-brands" class="settings-section" style="display:none;">
+                <div class="card admin-card admin-card-wide">
+                    <div class="admin-card-header-row">
+                        <div>
+                            <h2 class="admin-card-title">iGaming Brands</h2>
+                            <p class="admin-card-sub">Competitor brand wallets scanned for outgoing payouts to identify their users.</p>
+                        </div>
+                        <button id="addBrandBtn" class="btn btn-primary btn-sm">+ Add Brand</button>
+                    </div>
+                    <div class="table-wrapper">
+                        <table id="brandsTable">
+                            <thead>
+                                <tr>
+                                    <th>Brand Name</th>
+                                    <th>Wallet Address</th>
+                                    <th>Last Block</th>
+                                    <th>Transfers</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="brandsTbody">
+                                <tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 24px;">Loading…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
         </div>
     </main>
+
+    <!-- ===== BRAND MODAL ===== -->
+    <div id="brandModal" class="modal-backdrop" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="brandModalTitle">
+        <div class="modal-card">
+            <h3 class="modal-title" id="brandModalTitle">Add iGaming Brand</h3>
+            <form id="brandForm">
+                <input type="hidden" id="brandId" value="">
+                <div class="input-group">
+                    <label class="form-label" for="brandName">Brand Name *</label>
+                    <input class="wallet-input" id="brandName" type="text" placeholder="e.g. Stake.com" maxlength="128" required>
+                </div>
+                <div class="input-group">
+                    <label class="form-label" for="brandWallet">Wallet Address *</label>
+                    <input class="wallet-input mono" id="brandWallet" type="text" placeholder="0x..." maxlength="42" required>
+                    <p class="field-hint">The Ethereum address whose <em>outgoing</em> ERC-20 transfers we scan to identify this brand's users.</p>
+                </div>
+                <div class="input-group">
+                    <label class="form-label" for="brandDesc">Description (optional)</label>
+                    <input class="wallet-input" id="brandDesc" type="text" placeholder="Short note about this brand" maxlength="255">
+                </div>
+                <div class="toggle-row">
+                    <input type="checkbox" id="brandActive" checked>
+                    <label for="brandActive">Active (include in iGaming scans)</label>
+                </div>
+                <div id="brandFormError" class="admin-error" style="display:none;"></div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary btn-sm" id="brandCancelBtn">Cancel</button>
+                    <button type="button" class="btn btn-primary btn-sm" id="brandSaveBtn">Save Brand</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <!-- ===== TOKEN MODAL ===== -->
     <div id="tokenModal" class="modal-backdrop" style="display:none;">

@@ -132,34 +132,6 @@
                 </div>
             </div>
 
-            <!-- iGAMING BRANDS CARD -->
-            <div class="card admin-card">
-                <div class="admin-card-header-row">
-                    <div>
-                        <h2 class="admin-card-title">iGaming Brands</h2>
-                        <p class="admin-card-sub">Competitor brand wallets scanned for outgoing payouts to identify their users.</p>
-                    </div>
-                    <button id="addBrandBtn" class="btn btn-secondary btn-sm">+ Add Brand</button>
-                </div>
-                <div class="table-wrapper">
-                    <table id="brandsTable">
-                        <thead>
-                            <tr>
-                                <th>Brand Name</th>
-                                <th>Wallet Address</th>
-                                <th>Last Block</th>
-                                <th>Transfers</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="brandsTbody">
-                            <tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 24px;">Loading…</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
             <!-- TRANSACTIONS CARD -->
             <div class="card admin-card admin-card-wide">
                 <div class="admin-card-header-row">
@@ -208,41 +180,6 @@
 
         </div>
     </main>
-
-    <!-- ===== BRAND MODAL ===== -->
-    <div id="brandModal" class="modal-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="brandModalTitle">
-        <div class="modal-box">
-            <div class="modal-header">
-                <h3 class="modal-title" id="brandModalTitle">Add iGaming Brand</h3>
-                <button class="modal-close" id="brandModalClose" aria-label="Close">&times;</button>
-            </div>
-            <form id="brandForm" class="modal-body">
-                <input type="hidden" id="brandId" value="">
-                <div class="form-group">
-                    <label class="form-label" for="brandName">Brand Name *</label>
-                    <input class="wallet-input" id="brandName" type="text" placeholder="e.g. Stake.com" maxlength="128" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="brandWallet">Wallet Address *</label>
-                    <input class="wallet-input mono" id="brandWallet" type="text" placeholder="0x..." maxlength="42" required>
-                    <small class="form-hint">The Ethereum address whose <em>outgoing</em> ERC-20 transfers we scan to identify this brand's users.</small>
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="brandDesc">Description (optional)</label>
-                    <input class="wallet-input" id="brandDesc" type="text" placeholder="Short note about this brand" maxlength="255">
-                </div>
-                <div class="form-group form-check">
-                    <input type="checkbox" id="brandActive" checked>
-                    <label for="brandActive">Active (include in iGaming scans)</label>
-                </div>
-                <div id="brandFormError" class="form-error" style="display:none;"></div>
-            </form>
-            <div class="modal-footer">
-                <button class="btn btn-secondary btn-sm" id="brandCancelBtn">Cancel</button>
-                <button class="btn btn-primary btn-sm" id="brandSaveBtn">Save Brand</button>
-            </div>
-        </div>
-    </div>
 
     <script src="/static/js/global-header.js"></script>
     <script src="/static/js/admin.js?v=5"></script>

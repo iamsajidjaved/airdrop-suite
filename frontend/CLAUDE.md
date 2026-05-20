@@ -8,9 +8,9 @@ Vanilla HTML / CSS / JS. **No build step, no framework, no npm.** FastAPI serves
 frontend/
 ├── index.html          wallet input page (entry point at "/")
 ├── explorer.html       transaction dashboard (served at "/explorer")
-├── admin.html          scanner admin — iGaming brands, qualifying transactions (served at "/admin/scanner")
+├── admin.html          scanner admin — qualifying transactions, scanner status (served at "/admin/scanner")
 ├── distribution.html   airdrop campaigns admin (served at "/admin/airdrop")
-├── settings.html       settings — tokens, thresholds, distribution wallets (served at "/admin/settings")
+├── settings.html       settings — tokens, thresholds, distribution wallets, iGaming brands (served at "/admin/settings")
 ├── css/
 │   ├── styles.css      shared styles, dark theme
 │   └── admin.css       admin-specific overrides (also loaded by index.html and explorer.html for header styles)
@@ -18,9 +18,9 @@ frontend/
     ├── global-header.js  loaded by ALL pages — renders network selector, scan mode, Run Scan in the header
     ├── wallet.js         used by index.html — input validation + redirect to /explorer
     ├── explorer.js       used by explorer.html — fetch, filter, paginate, CSV export
-    ├── admin.js          used by admin.html — scanner status, iGaming brands CRUD, transactions
+    ├── admin.js          used by admin.html — scanner status, transactions (iGaming brands moved to settings.js)
     ├── distribution.js   used by distribution.html — campaign + send management
-    └── settings.js       used by settings.html — token CRUD, threshold, wallets
+    └── settings.js       used by settings.html — token CRUD, threshold, wallets, iGaming brands CRUD
 ```
 
 `global-header.js` is loaded before each page script. It injects the three scanner controls into `#globalHeaderActions` in every page's header and dispatches two document-level custom events:
@@ -56,6 +56,8 @@ All `fetch` calls use relative paths (`/api/...`). The frontend and backend are 
 | `renderControls()` | Injects network switch, scan mode select, Run Scan button into `#globalHeaderActions` |
 | `loadNetworks()` | Fetches `GET /api/airdrop/networks`, populates the global network select |
 | `loadConfig()` | Fetches `GET /api/airdrop/config`, syncs `active_network`; sets `window.GlobalHeader.activeNetwork` |
+| `loadBrands()` | Fetches `GET /api/airdrop/brands`; hides iGaming/Both scan-mode options when no brands exist |
+| `refreshScanModeOptions(brands)` | Call with updated brands array (e.g. after add/delete in Settings) to sync dropdown visibility without a page reload |
 | `"networkchange"` event | Dispatched on `document` after network change is saved to DB |
 | `"scancomplete"` event | Dispatched on `document` after a Run Scan API call completes |
 
@@ -66,13 +68,9 @@ All `fetch` calls use relative paths (`/api/...`). The frontend and backend are 
 | `loadNetworks()` | Fetches `GET /api/airdrop/networks` (data only, no DOM — used to build Etherscan links) |
 | `loadConfig()` | Fetches `GET /api/airdrop/config` for threshold KPI; syncs `activeNetwork` from `window.GlobalHeader` |
 | `loadStatus()` | Fetches `GET /api/airdrop/status`, renders per-token blocks, per-brand blocks, mode breakdown |
-| `loadBrands()` | Fetches `GET /api/airdrop/brands`, renders the iGaming brands table |
-| `openBrandModal(brand?)` | Opens the add/edit brand modal (null = add mode) |
 | `loadTokens()` | Fetches `GET /api/airdrop/tokens`, updates KPI strip and token filter dropdown |
 | `loadTx()` | Fetches `GET /api/airdrop/transactions` with current filter/page state |
 | `modeBadge(mode, brandName)` | Returns a colored HTML badge for "Standard" or "iGaming · BrandName" |
-| `window.editBrand(id)` | Table row action — opens edit modal pre-populated |
-| `window.deleteBrand(id, name)` | Table row action — confirms then calls `DELETE /api/airdrop/brands/{id}` |
 
 `admin.js` listens for `"networkchange"` to reload status and transactions, and for `"scancomplete"` to reload all scanner data.
 

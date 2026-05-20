@@ -73,6 +73,7 @@
         advanced:  $("settings-advanced"),
         filters:   $("settings-filters"),
         airdrop:   $("settings-airdrop"),
+        brands:    $("settings-brands"),
     };
 
     function setTab(name) {
@@ -538,6 +539,115 @@
     });
 
     // =====================================================================
+    // iGAMING BRANDS
+    // =====================================================================
+    let brands = [];
+
+    async function loadBrands() {
+        try {
+            brands = await airdropApi("/brands");
+            renderBrands();
+            if (window.GlobalHeader && window.GlobalHeader.refreshScanModeOptions)
+                window.GlobalHeader.refreshScanModeOptions(brands);
+        } catch (e) {
+            $("brandsTbody").innerHTML = `<tr><td colspan="6" style="color:var(--accent-danger);padding:16px;">${escapeHtml(e.message)}</td></tr>`;
+        }
+    }
+
+    function renderBrands() {
+        const tbody = $("brandsTbody");
+        if (!brands.length) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px;">No brands configured. Click <strong>+ Add Brand</strong> to add one.</td></tr>`;
+            return;
+        }
+        const fmtAddrShort = (a) => a ? `${a.slice(0, 8)}…${a.slice(-6)}` : "—";
+        tbody.innerHTML = brands.map(b => `
+            <tr>
+                <td><strong>${escapeHtml(b.name)}</strong>${b.description ? `<br><small style="color:var(--text-muted)">${escapeHtml(b.description)}</small>` : ""}</td>
+                <td><span class="addr mono" title="${escapeHtml(b.wallet_address)}">${fmtAddrShort(b.wallet_address)}</span></td>
+                <td class="mono">${b.last_scanned_block ? Number(b.last_scanned_block).toLocaleString() : "—"}</td>
+                <td>${(b.transaction_count || 0).toLocaleString()}</td>
+                <td><span class="pill ${b.is_active ? "pill-active" : "pill-inactive"}">${b.is_active ? "Active" : "Inactive"}</span></td>
+                <td>
+                    <div class="row-actions">
+                        <button class="row-btn" data-brand-edit="${b.id}">Edit</button>
+                        <button class="row-btn danger" data-brand-del="${b.id}" data-brand-name="${escapeHtml(b.name)}">Delete</button>
+                    </div>
+                </td>
+            </tr>`).join("");
+    }
+
+    function openBrandModal(brand = null) {
+        $("brandModalTitle").textContent = brand ? "Edit Brand" : "Add iGaming Brand";
+        $("brandId").value = brand ? brand.id : "";
+        $("brandName").value = brand ? brand.name : "";
+        $("brandWallet").value = brand ? brand.wallet_address : "";
+        $("brandDesc").value = brand ? (brand.description || "") : "";
+        $("brandActive").checked = brand ? brand.is_active : true;
+        $("brandWallet").readOnly = !!brand;
+        $("brandFormError").style.display = "none";
+        $("brandModal").style.display = "flex";
+        $("brandName").focus();
+    }
+    function closeBrandModal() { $("brandModal").style.display = "none"; }
+
+    $("addBrandBtn").addEventListener("click", () => openBrandModal());
+    $("brandCancelBtn").addEventListener("click", closeBrandModal);
+    $("brandModal").addEventListener("click", (ev) => { if (ev.target === $("brandModal")) closeBrandModal(); });
+
+    $("brandsTbody").addEventListener("click", async (ev) => {
+        const editBtn = ev.target.closest("[data-brand-edit]");
+        const delBtn  = ev.target.closest("[data-brand-del]");
+        if (editBtn) {
+            const brand = brands.find(b => b.id == editBtn.dataset.brandEdit);
+            if (brand) openBrandModal(brand);
+        } else if (delBtn) {
+            const name = delBtn.dataset.brandName;
+            const id   = delBtn.dataset.brandDel;
+            if (!confirm(`Delete brand "${name}"? This will remove the FK link from iGaming transactions (they remain, but won't reference this brand).`)) return;
+            try {
+                await airdropApi(`/brands/${id}`, { method: "DELETE" });
+                await loadBrands();
+            } catch (e) { alert(`Failed to delete: ${e.message}`); }
+        }
+    });
+
+    $("brandSaveBtn").addEventListener("click", async () => {
+        const id     = $("brandId").value;
+        const name   = $("brandName").value.trim();
+        const wallet = $("brandWallet").value.trim();
+        const desc   = $("brandDesc").value.trim();
+        const active = $("brandActive").checked;
+        const errEl  = $("brandFormError");
+
+        if (!name) { errEl.textContent = "Brand name is required."; errEl.style.display = "block"; return; }
+        if (!id && !wallet) { errEl.textContent = "Wallet address is required."; errEl.style.display = "block"; return; }
+
+        $("brandSaveBtn").disabled = true;
+        errEl.style.display = "none";
+        try {
+            if (id) {
+                await airdropApi(`/brands/${id}`, {
+                    method: "PATCH",
+                    body: JSON.stringify({ name, description: desc || null, is_active: active }),
+                });
+            } else {
+                await airdropApi("/brands", {
+                    method: "POST",
+                    body: JSON.stringify({ name, wallet_address: wallet, description: desc || null, is_active: active }),
+                });
+            }
+            closeBrandModal();
+            await loadBrands();
+        } catch (e) {
+            errEl.textContent = e.message;
+            errEl.style.display = "block";
+        } finally {
+            $("brandSaveBtn").disabled = false;
+        }
+    });
+
+    // =====================================================================
     // AIRDROP CONFIG — distribution worker settings
     // =====================================================================
     async function loadTokensForDist() {
@@ -590,6 +700,7 @@
         await loadNetworks();
         let blocklistLoaded = false;
         let airdropCfgLoaded = false;
+        let brandsLoaded = false;
 
         tabs.forEach(tab => tab.addEventListener("click", async () => {
             if (tab.dataset.tab === "filters" && !blocklistLoaded) {
@@ -600,6 +711,10 @@
                 airdropCfgLoaded = true;
                 await loadTokensForDist();
                 await loadDistConfig();
+            }
+            if (tab.dataset.tab === "brands" && !brandsLoaded) {
+                brandsLoaded = true;
+                await loadBrands();
             }
         }));
 
@@ -614,6 +729,10 @@
             airdropCfgLoaded = true;
             await loadTokensForDist();
             await loadDistConfig();
+        }
+        if (initHash === "brands" && !brandsLoaded) {
+            brandsLoaded = true;
+            await loadBrands();
         }
     })();
 })();
