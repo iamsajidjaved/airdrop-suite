@@ -13,16 +13,23 @@ frontend/
 ├── settings.html       settings — tokens, thresholds, distribution wallets (served at "/admin/settings")
 ├── css/
 │   ├── styles.css      shared styles, dark theme
-│   └── admin.css       admin-specific overrides
+│   └── admin.css       admin-specific overrides (also loaded by index.html and explorer.html for header styles)
 └── js/
-    ├── wallet.js       used by index.html — input validation + redirect to /explorer
-    ├── explorer.js     used by explorer.html — fetch, filter, paginate, CSV export
-    ├── admin.js        used by admin.html — scanner status, iGaming brands CRUD, transactions
-    ├── distribution.js used by distribution.html — campaign + send management
-    └── settings.js     used by settings.html — token CRUD, threshold, wallets
+    ├── global-header.js  loaded by ALL pages — renders network selector, scan mode, Run Scan in the header
+    ├── wallet.js         used by index.html — input validation + redirect to /explorer
+    ├── explorer.js       used by explorer.html — fetch, filter, paginate, CSV export
+    ├── admin.js          used by admin.html — scanner status, iGaming brands CRUD, transactions
+    ├── distribution.js   used by distribution.html — campaign + send management
+    └── settings.js       used by settings.html — token CRUD, threshold, wallets
 ```
 
-JS files map 1:1 to pages. Pages reference assets at `/static/...` (mount defined in `backend/main.py`).
+`global-header.js` is loaded before each page script. It injects the three scanner controls into `#globalHeaderActions` in every page's header and dispatches two document-level custom events:
+- `networkchange` `{ detail: { network: string } }` — fired after the active network is saved to DB
+- `scancomplete` `{ detail: { result: object } }` — fired after a Run Scan completes
+
+Page scripts that need to react register listeners for these events. `admin.js` listens for both; `settings.js` listens for `networkchange` to re-filter the tokens tab.
+
+`window.GlobalHeader.activeNetwork` is set by `global-header.js` after reading from DB; page scripts read it to initialise local state.
 
 ## How serving works
 
@@ -34,18 +41,30 @@ JS files map 1:1 to pages. Pages reference assets at `/static/...` (mount define
 
 - **Cross-page state → URL query params.** `index.html` redirects to `/explorer?address=...&from_date=...&to_date=...`; `explorer.js` reads them on load.
 - **Transient state → `sessionStorage`.** Used in a few places to remember filter selections within a tab.
-- **No global store, no framework.** Each page's JS file owns its DOM and its `fetch` calls.
+- **Global network → DB (`airdrop_config.active_network`).** Managed by `global-header.js`; exposed as `window.GlobalHeader.activeNetwork`.
+- **Scan mode → `localStorage`.** Managed by `global-header.js`; persists across navigations without a DB call.
+- **No global store, no framework.** Each page's JS file owns its DOM and its `fetch` calls, reacting to global events via `document.addEventListener("networkchange"|"scancomplete", ...)`.
 
 ## API base
 
 All `fetch` calls use relative paths (`/api/...`). The frontend and backend are served from the same origin in dev and prod, so no CORS concerns at runtime (the `*` CORS policy in `backend/main.py` is permissive for local debugging — tighten it before deploying publicly).
 
+## Key functions in global-header.js
+
+| Function / event | What it does |
+| --- | --- |
+| `renderControls()` | Injects network switch, scan mode select, Run Scan button into `#globalHeaderActions` |
+| `loadNetworks()` | Fetches `GET /api/airdrop/networks`, populates the global network select |
+| `loadConfig()` | Fetches `GET /api/airdrop/config`, syncs `active_network`; sets `window.GlobalHeader.activeNetwork` |
+| `"networkchange"` event | Dispatched on `document` after network change is saved to DB |
+| `"scancomplete"` event | Dispatched on `document` after a Run Scan API call completes |
+
 ## Key functions in admin.js
 
 | Function | What it does |
 | --- | --- |
-| `loadNetworks()` | Fetches `GET /api/airdrop/networks` and populates the network selector |
-| `loadConfig()` | Fetches `GET /api/airdrop/config` and syncs `active_network` to the UI select |
+| `loadNetworks()` | Fetches `GET /api/airdrop/networks` (data only, no DOM — used to build Etherscan links) |
+| `loadConfig()` | Fetches `GET /api/airdrop/config` for threshold KPI; syncs `activeNetwork` from `window.GlobalHeader` |
 | `loadStatus()` | Fetches `GET /api/airdrop/status`, renders per-token blocks, per-brand blocks, mode breakdown |
 | `loadBrands()` | Fetches `GET /api/airdrop/brands`, renders the iGaming brands table |
 | `openBrandModal(brand?)` | Opens the add/edit brand modal (null = add mode) |
@@ -55,7 +74,7 @@ All `fetch` calls use relative paths (`/api/...`). The frontend and backend are 
 | `window.editBrand(id)` | Table row action — opens edit modal pre-populated |
 | `window.deleteBrand(id, name)` | Table row action — confirms then calls `DELETE /api/airdrop/brands/{id}` |
 
-Network change saves to DB: `PUT /api/airdrop/config { active_network: newNet }`, then reloads status + transactions. Scan mode dropdown (Standard / iGaming / Both) is passed as `?scan_mode=` on the `POST /api/airdrop/monitor/run` call.
+`admin.js` listens for `"networkchange"` to reload status and transactions, and for `"scancomplete"` to reload all scanner data.
 
 ## Editing
 

@@ -39,7 +39,7 @@
     let tokens = [];
     let networks = [];
     let brands = [];
-    let activeNetwork = "ethereum";
+    let activeNetwork = (window.GlobalHeader && window.GlobalHeader.activeNetwork) || "ethereum";
     let txOffset = 0;
     const TX_LIMIT = 25;
     let txTotal = 0;
@@ -49,7 +49,7 @@
         return n ? n.explorer : "https://etherscan.io";
     }
 
-    // -------- networks --------
+    // -------- networks (data only — UI is owned by global-header.js) --------
     async function loadNetworks() {
         try { networks = await api("/networks"); }
         catch {
@@ -58,52 +58,16 @@
                 { key: "sepolia",  label: "Sepolia Testnet",  chain_id: 11155111, explorer: "https://sepolia.etherscan.io" },
             ];
         }
-        const sel = $("networkSelect");
-        sel.innerHTML = networks.map(n =>
-            `<option value="${escHtml(n.key)}">${escHtml(n.label)}</option>`
-        ).join("");
     }
 
-    function updateNetworkDot() {
-        const dot = $("networkDot");
-        if (!dot) return;
-        dot.classList.remove("net-mainnet", "net-testnet");
-        dot.classList.add(activeNetwork === "ethereum" ? "net-mainnet" : "net-testnet");
-    }
-
-    // Network selector: save to DB, reload data
-    $("networkSelect").addEventListener("change", async (ev) => {
-        const newNet = ev.target.value;
-        if (!newNet || newNet === activeNetwork) return;
-        try {
-            await api("/config", {
-                method: "PUT",
-                body: JSON.stringify({ active_network: newNet }),
-            });
-            activeNetwork = newNet;
-            updateNetworkDot();
-            txOffset = 0;
-            updateActiveTokensKpi();
-            await Promise.all([loadStatus(), loadTx()]);
-        } catch (e) {
-            alert(`Failed to switch network: ${e.message}`);
-            ev.target.value = activeNetwork; // revert
-        }
-    });
-
-    // -------- config (threshold + active_network) --------
+    // -------- config (threshold KPI — network is managed by global-header.js) --------
     async function loadConfig() {
         try {
             const cfg = await api("/config");
             const kpiTh = $("kpiThreshold");
             if (kpiTh) kpiTh.textContent = `$${Number(cfg.min_threshold_usd).toLocaleString()}`;
-            // sync active network with DB value
-            if (cfg.active_network && cfg.active_network !== activeNetwork) {
-                activeNetwork = cfg.active_network;
-            }
-            const sel = $("networkSelect");
-            if (sel) sel.value = activeNetwork;
-            updateNetworkDot();
+            // sync local activeNetwork from GlobalHeader (which read it from DB)
+            activeNetwork = (window.GlobalHeader && window.GlobalHeader.activeNetwork) || activeNetwork;
         } catch { /* KPI optional */ }
     }
 
@@ -326,40 +290,22 @@
     $("txModeFilter").addEventListener("change", () => { txOffset = 0; loadTx(); });
     $("txRefreshBtn").addEventListener("click", () => loadTx());
 
-    // -------- monitor run --------
-    $("runMonitorBtn").addEventListener("click", async () => {
-        const btn = $("runMonitorBtn");
-        const scanMode = $("scanModeSelect").value || "standard";
-        btn.disabled = true;
-        const orig = btn.innerHTML;
-        btn.innerHTML = '<span class="spinner"></span> Scanning…';
-        try {
-            const res = await api(`/monitor/run?scan_mode=${encodeURIComponent(scanMode)}`, { method: "POST" });
-            const parts = [
-                `Scan complete (mode: ${scanMode}).`,
-                `Inserted ${res.new_transfers_inserted} new transfers.`,
-                `Total stored: ${res.total_transfers_stored}.`,
-            ];
-            if (res.tokens_scanned && res.tokens_scanned.length)
-                parts.push(`Tokens: ${res.tokens_scanned.join(", ")}.`);
-            if (res.brands_scanned && res.brands_scanned.length)
-                parts.push(`Brands: ${res.brands_scanned.join(", ")}.`);
-            if (res.errors && res.errors.length)
-                parts.push(`\nNotes: ${res.errors.join("; ")}`);
-            alert(parts.join("\n"));
-            await Promise.all([loadStatus(), loadBrands(), loadTokens(), loadTx()]);
-        } catch (e) {
-            alert(`Scan failed: ${e.message}`);
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = orig;
-        }
+    // -------- react to global header events --------
+    document.addEventListener("networkchange", async (ev) => {
+        activeNetwork = ev.detail.network;
+        txOffset = 0;
+        updateActiveTokensKpi();
+        await Promise.all([loadStatus(), loadTx()]);
+    });
+
+    document.addEventListener("scancomplete", async () => {
+        await Promise.all([loadStatus(), loadBrands(), loadTokens(), loadTx()]);
     });
 
     // -------- init --------
     (async () => {
-        await loadNetworks();
-        await loadConfig();        // sets activeNetwork from DB, syncs select
+        await loadNetworks();   // populates local networks[] for explorerFor()
+        await loadConfig();     // reads threshold KPI + syncs activeNetwork from GlobalHeader
         await Promise.all([loadStatus(), loadTokens(), loadBrands()]);
         await loadTx();
     })();

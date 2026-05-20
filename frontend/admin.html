@@ -65,25 +65,7 @@
                 <span>Scanner</span>
             </div>
         </div>
-        <div class="header-actions">
-            <!-- Global network selector — saved to DB via API -->
-            <div class="network-switch" title="Active blockchain network (applies globally)">
-                <span class="network-switch-dot" id="networkDot"></span>
-                <select id="networkSelect" class="network-select" aria-label="Active network">
-                    <option value="">Loading…</option>
-                </select>
-            </div>
-            <!-- Scan mode selector -->
-            <select id="scanModeSelect" class="network-select" title="Scan mode" style="min-width:130px;">
-                <option value="standard">Standard</option>
-                <option value="igaming">iGaming</option>
-                <option value="both">Both</option>
-            </select>
-            <button id="runMonitorBtn" class="btn btn-primary btn-sm">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                Run Scan
-            </button>
-        </div>
+        <div class="header-actions" id="globalHeaderActions"></div>
     </header>
 
     <!-- ===== MAIN CONTENT ===== -->
@@ -262,6 +244,7 @@
         </div>
     </div>
 
+    <script src="/static/js/global-header.js"></script>
     <script src="/static/js/admin.js?v=5"></script>
 </body>
 </html>

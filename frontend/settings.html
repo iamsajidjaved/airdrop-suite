@@ -63,6 +63,7 @@
                 <span>Home</span><span>›</span><span>Settings</span>
             </div>
         </div>
+        <div class="header-actions" id="globalHeaderActions"></div>
     </header>
 
     <!-- ===== MAIN ===== -->
@@ -131,15 +132,7 @@
                             <h2 class="admin-card-title">Supported Tokens</h2>
                             <p class="admin-card-sub">ERC-20 tokens scanned by the monitor. Add, edit, enable, disable or delete — all stored in the database.</p>
                         </div>
-                        <div style="display:flex; gap:8px; align-items:center;">
-                            <div class="network-switch" title="Filter tokens by network">
-                                <span class="network-switch-dot" id="networkDot"></span>
-                                <select id="networkSelect" class="network-select" aria-label="Active network">
-                                    <option value="">Loading…</option>
-                                </select>
-                            </div>
-                            <button id="addTokenBtn" class="btn btn-primary btn-sm">+ Add Token</button>
-                        </div>
+                        <button id="addTokenBtn" class="btn btn-primary btn-sm">+ Add Token</button>
                     </div>
 
                     <div class="table-wrapper">
@@ -446,6 +439,7 @@
         </div>
     </div>
 
+    <script src="/static/js/global-header.js"></script>
     <script src="/static/js/settings.js?v=2"></script>
 </body>
 </html>

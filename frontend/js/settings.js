@@ -2,7 +2,6 @@
 (() => {
     const AIRDROP_API = "/api/airdrop";
     const DIST_API    = "/api/distribution";
-    const NET_KEY     = "wallet_explorer_active_network";
     const TOKEN_KEY   = "wallet_explorer_admin_token";
 
     const $ = (id) => document.getElementById(id);
@@ -119,7 +118,6 @@
     // =====================================================================
     let tokens = [];
     let networks = [];
-    let activeNetwork = localStorage.getItem(NET_KEY) || "ethereum";
 
     async function loadNetworks() {
         try { networks = await airdropApi("/networks"); }
@@ -129,28 +127,13 @@
                 { key: "sepolia",  label: "Sepolia Testnet",  chain_id: 11155111, explorer: "https://sepolia.etherscan.io" },
             ];
         }
-        if (!networks.find(n => n.key === activeNetwork)) {
-            activeNetwork = networks[0]?.key || "ethereum";
-        }
-        const sel = $("networkSelect");
-        sel.innerHTML = networks.map(n => `<option value="${n.key}">${escapeHtml(n.label)}</option>`).join("");
-        sel.value = activeNetwork;
-        updateNetworkDot();
+        // Populate modal network select only — header selector is owned by global-header.js
         const tns = $("tokenNetwork");
-        tns.innerHTML = networks.map(n => `<option value="${n.key}">${escapeHtml(n.label)}</option>`).join("");
+        if (tns) tns.innerHTML = networks.map(n => `<option value="${n.key}">${escapeHtml(n.label)}</option>`).join("");
     }
 
-    function updateNetworkDot() {
-        const dot = $("networkDot");
-        if (!dot) return;
-        dot.classList.remove("net-mainnet", "net-testnet");
-        dot.classList.add(activeNetwork === "ethereum" ? "net-mainnet" : "net-testnet");
-    }
-
-    $("networkSelect").addEventListener("change", (ev) => {
-        activeNetwork = ev.target.value;
-        localStorage.setItem(NET_KEY, activeNetwork);
-        updateNetworkDot();
+    // Re-filter tokens table when the global header network changes
+    document.addEventListener("networkchange", () => {
         renderTokens();
     });
 
@@ -163,7 +146,8 @@
     }
 
     function tokensForActive() {
-        return tokens.filter(t => (t.network || "").toLowerCase() === activeNetwork);
+        const net = (window.GlobalHeader && window.GlobalHeader.activeNetwork) || "ethereum";
+        return tokens.filter(t => (t.network || "").toLowerCase() === net);
     }
 
     function renderTokens() {
@@ -238,7 +222,8 @@
         $("tokenSymbol").value = token ? token.symbol : "";
         $("tokenContract").value = token ? token.contract_address : "";
         $("tokenDecimals").value = token ? token.decimals : 6;
-        $("tokenNetwork").value = token ? token.network : activeNetwork;
+        $("tokenNetwork").value = token ? token.network
+            : ((window.GlobalHeader && window.GlobalHeader.activeNetwork) || "ethereum");
         $("tokenActive").checked = token ? token.is_active : true;
         $("tokenFormError").style.display = "none";
         $("tokenModal").style.display = "flex";
@@ -256,7 +241,7 @@
             symbol: $("tokenSymbol").value.trim(),
             contract_address: $("tokenContract").value.trim(),
             decimals: parseInt($("tokenDecimals").value, 10),
-            network: $("tokenNetwork").value.trim() || activeNetwork,
+            network: $("tokenNetwork").value.trim() || (window.GlobalHeader && window.GlobalHeader.activeNetwork) || "ethereum",
             is_active: $("tokenActive").checked,
         };
         try {
